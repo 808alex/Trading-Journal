@@ -18,22 +18,32 @@ router.get('/:date', (req, res) => {
 // POST /api/journal — one entry per day, so this upserts by entry_date rather
 // than always creating a new row.
 router.post('/', (req, res) => {
-  const { entry_date, narrative, volume, challenges, lessons } = req.body;
+  const { entry_date, title, narrative, volume, challenges, lessons, starred } = req.body;
 
   if (!entry_date || !/^\d{4}-\d{2}-\d{2}$/.test(entry_date)) {
     return res.status(400).json({ error: 'entry_date is required, in YYYY-MM-DD format' });
   }
 
   db.prepare(
-    `INSERT INTO journal_entries (entry_date, narrative, volume, challenges, lessons)
-     VALUES (?, ?, ?, ?, ?)
+    `INSERT INTO journal_entries (entry_date, title, narrative, volume, challenges, lessons, starred)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(entry_date) DO UPDATE SET
+       title = excluded.title,
        narrative = excluded.narrative,
        volume = excluded.volume,
        challenges = excluded.challenges,
        lessons = excluded.lessons,
+       starred = excluded.starred,
        updated_at = datetime('now')`
-  ).run(entry_date, narrative ?? null, volume ?? null, challenges ?? null, lessons ?? null);
+  ).run(
+    entry_date,
+    title ?? null,
+    narrative ?? null,
+    volume ?? null,
+    challenges ?? null,
+    lessons ?? null,
+    starred ? 1 : 0
+  );
 
   const row = db.prepare('SELECT * FROM journal_entries WHERE entry_date = ?').get(entry_date);
   res.status(201).json(row);

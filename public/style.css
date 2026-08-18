@@ -425,6 +425,42 @@ h3 {
   margin-top: 0.5rem;
 }
 
+.star-toggle-btn {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 0.55rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+}
+
+.star-toggle-btn:hover { border-color: var(--yellow); }
+
+.star-toggle-btn.active {
+  color: var(--yellow);
+  border-color: var(--yellow);
+  background: rgba(255, 204, 77, 0.12);
+}
+
+.journal-card-star {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0 0.3rem;
+  transition: color 150ms ease, transform 150ms ease;
+}
+
+.journal-card-star:hover { transform: scale(1.15); }
+.journal-card-star.active { color: var(--yellow); }
+
+.journal-card-delete {
+  margin-top: 0.6rem;
+}
+
 .btn-primary, .btn-secondary, .btn-danger {
   cursor: pointer;
   border-radius: 6px;
@@ -627,7 +663,19 @@ h3 {
   font-size: 2.2rem;
   font-weight: 700;
   margin: 0.5rem 0 1rem;
+  text-align: center;
   transition: color 200ms ease;
+}
+
+.cal-month-label-inline {
+  font-size: 1rem;
+  color: var(--text-dim);
+  font-weight: 400;
+}
+
+.centered-hint {
+  text-align: center;
+  margin-top: -0.5rem;
 }
 
 .sol-price-input {

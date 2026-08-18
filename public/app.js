@@ -154,6 +154,15 @@ function fmtMoney(sol, decimals) {
   return fmtSol(sol, decimals);
 }
 
+// Shown wherever fmtMoney() is used for a headline number, so a fiat
+// currency silently falling back to SOL (because no rate has been entered
+// yet) doesn't read as "the currency setting doesn't work." Returns plain
+// text -- callers wrap it in whatever element fits their layout.
+function currencyPendingHint() {
+  if (appCurrency === 'sol' || solPrices[appCurrency]) return '';
+  return `Showing SOL — set a SOL price for ${appCurrency.toUpperCase()} in Settings to see this in ${appCurrency.toUpperCase()}.`;
+}
+
 function fmtPct(n) {
   if (n == null) return '—';
   const sign = n > 0 ? '+' : '';
@@ -502,6 +511,7 @@ async function loadTotals() {
   document.getElementById('totals-summary').innerHTML = `
     <div class="big-number ${pnlClass(totalPnl)}">${fmtMoney(totalPnl)}</div>
     <p class="hint">P&amp;L across ${closed.length} closed trade${closed.length === 1 ? '' : 's'} &mdash; ${periodLabel}</p>
+    ${currencyPendingHint() ? `<p class="hint">${currencyPendingHint()}</p>` : ''}
     <div class="stat-row"><span>Open trades</span><span>${openCount}</span></div>
     <div class="stat-row"><span>Wins / Losses</span><span>${wins} / ${losses}</span></div>
     <div class="stat-row"><span>Win rate</span><span>${winRate}%</span></div>
@@ -584,6 +594,7 @@ async function loadCalendar() {
   const monthTotalEl = document.getElementById('cal-month-total');
   monthTotalEl.textContent = `Month total: ${fmtMoney(monthTotal, 3)}`;
   monthTotalEl.className = `cal-month-total ${pnlClass(monthTotal)}`;
+  document.getElementById('cal-currency-hint').textContent = currencyPendingHint();
 
   const grid = document.getElementById('calendar-grid');
   grid.innerHTML = '';
@@ -616,7 +627,9 @@ async function loadCalendar() {
 
 // ---------- Daily Journal ----------
 const journalForm = document.getElementById('journal-form');
+const journalTitleInput = document.getElementById('journal-title');
 const journalDateInput = document.getElementById('journal-date');
+const journalStarBtn = document.getElementById('journal-star-btn');
 const journalStatus = document.getElementById('journal-status');
 const journalDeleteBtn = document.getElementById('journal-delete');
 const journalListEl = document.getElementById('journal-list');
@@ -627,28 +640,48 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+let journalStarred = false;
+
+function setJournalStar(starred) {
+  journalStarred = starred;
+  journalStarBtn.classList.toggle('active', starred);
+  journalStarBtn.setAttribute('aria-pressed', String(starred));
+  journalStarBtn.innerHTML = starred ? '&#9733; Starred' : '&#9734; Star this entry';
+}
+
+journalStarBtn.addEventListener('click', () => setJournalStar(!journalStarred));
+
 journalDateInput.value = todayStr();
 
 function resetJournalForm(date) {
+  journalTitleInput.value = '';
   journalDateInput.value = date || todayStr();
   document.getElementById('journal-narrative').value = '';
   document.getElementById('journal-volume').value = '';
   document.getElementById('journal-challenges').value = '';
   document.getElementById('journal-lessons').value = '';
+  setJournalStar(false);
   journalDeleteBtn.classList.add('hidden');
   journalStatus.textContent = '';
   journalStatus.className = 'status-msg';
 }
 
+document.getElementById('journal-new').addEventListener('click', () => resetJournalForm());
+
 async function loadJournalEntryIntoForm(date) {
   try {
     const entry = await api(`/api/journal/${date}`);
+    journalTitleInput.value = entry.title ?? '';
     journalDateInput.value = entry.entry_date;
     document.getElementById('journal-narrative').value = entry.narrative ?? '';
     document.getElementById('journal-volume').value = entry.volume ?? '';
     document.getElementById('journal-challenges').value = entry.challenges ?? '';
     document.getElementById('journal-lessons').value = entry.lessons ?? '';
+    setJournalStar(!!entry.starred);
     journalDeleteBtn.classList.remove('hidden');
+    journalStatus.textContent = '';
+    journalStatus.className = 'status-msg';
+    journalForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch {
     resetJournalForm(date);
   }
@@ -661,10 +694,12 @@ journalForm.addEventListener('submit', async (e) => {
 
   const body = {
     entry_date: journalDateInput.value,
+    title: journalTitleInput.value || null,
     narrative: document.getElementById('journal-narrative').value || null,
     volume: document.getElementById('journal-volume').value || null,
     challenges: document.getElementById('journal-challenges').value || null,
     lessons: document.getElementById('journal-lessons').value || null,
+    starred: journalStarred,
   };
 
   try {
@@ -679,17 +714,32 @@ journalForm.addEventListener('submit', async (e) => {
   }
 });
 
-journalDeleteBtn.addEventListener('click', async () => {
+async function deleteJournalEntry(date) {
   if (!confirm('Delete this journal entry? This cannot be undone.')) return;
   try {
-    await api(`/api/journal/${journalDateInput.value}`, { method: 'DELETE' });
-    resetJournalForm();
+    await api(`/api/journal/${date}`, { method: 'DELETE' });
+    if (journalDateInput.value === date) resetJournalForm();
     loadJournalList();
   } catch (err) {
     journalStatus.textContent = err.message;
     journalStatus.classList.add('error');
   }
-});
+}
+
+journalDeleteBtn.addEventListener('click', () => deleteJournalEntry(journalDateInput.value));
+
+async function toggleJournalStarFromList(entry) {
+  try {
+    await api('/api/journal', {
+      method: 'POST',
+      body: JSON.stringify({ ...entry, starred: !entry.starred }),
+    });
+    loadJournalList();
+  } catch {
+    // Non-critical -- if this fails the list just doesn't update; no need
+    // to interrupt the user with an error for a quick star toggle.
+  }
+}
 
 async function loadJournalList() {
   let entries;
@@ -710,15 +760,26 @@ async function loadJournalList() {
 
   entries.forEach((e) => {
     const preview = e.narrative || e.lessons || e.challenges || '(no notes)';
+    const heading = e.title ? e.title : e.entry_date;
     const card = document.createElement('div');
     card.className = 'trade-card';
     card.innerHTML = `
       <div class="trade-card-top">
-        <span class="coin">${e.entry_date}</span>
+        <span class="coin">${escapeHtml(heading)} <span class="badge">${e.entry_date}</span></span>
+        <button type="button" class="journal-card-star ${e.starred ? 'active' : ''}" title="${e.starred ? 'Unstar' : 'Star'} this entry">${e.starred ? '&#9733;' : '&#9734;'}</button>
       </div>
       <div class="trade-card-meta">${escapeHtml(preview.slice(0, 140))}${preview.length > 140 ? '…' : ''}</div>
+      <button type="button" class="btn-danger journal-card-delete">Delete</button>
     `;
     card.addEventListener('click', () => loadJournalEntryIntoForm(e.entry_date));
+    card.querySelector('.journal-card-star').addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      toggleJournalStarFromList(e);
+    });
+    card.querySelector('.journal-card-delete').addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      deleteJournalEntry(e.entry_date);
+    });
     journalListEl.appendChild(card);
   });
 }
@@ -910,6 +971,7 @@ settingsCurrencySelect.addEventListener('change', () => {
   appCurrency = settingsCurrencySelect.value;
   localStorage.setItem('appCurrency', appCurrency);
   updateCurrencyPriceField();
+  window.dispatchEvent(new Event('currencychange'));
 });
 
 settingsSolPriceInput.addEventListener('input', () => {
@@ -917,6 +979,16 @@ settingsSolPriceInput.addEventListener('input', () => {
   if (val > 0) solPrices[appCurrency] = val;
   else delete solPrices[appCurrency];
   localStorage.setItem('solPrices', JSON.stringify(solPrices));
+  window.dispatchEvent(new Event('currencychange'));
+});
+
+// Re-render whatever's currently on screen when the currency setting
+// changes, so switching in Settings updates a view you already had open
+// instead of only taking effect the next time you navigate to it.
+window.addEventListener('currencychange', () => {
+  if (document.getElementById('view-totals').classList.contains('active')) loadTotals();
+  if (document.getElementById('view-list').classList.contains('active')) loadTradeList();
+  if (!calendarModal.classList.contains('hidden')) loadCalendar();
 });
 
 // Only the accent/background tint changes per theme -- green/red/gold stay

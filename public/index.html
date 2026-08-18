@@ -236,11 +236,21 @@
     <!-- DAILY JOURNAL VIEW -->
     <section id="view-journal" class="view">
       <h2>Daily Journal</h2>
-      <p class="hint">One entry per day &mdash; separate from individual trades. Saving on a date that already has an entry updates it.</p>
+      <p class="hint">One entry per day &mdash; separate from individual trades. Click a past entry below to read or edit it; saving on a date that already has an entry updates it.</p>
       <form id="journal-form">
         <div class="field">
-          <label for="journal-date">Date</label>
-          <input type="date" id="journal-date" required>
+          <label for="journal-title">Title</label>
+          <input type="text" id="journal-title" placeholder="Give today a title (optional)">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="journal-date">Date</label>
+            <input type="date" id="journal-date" required>
+          </div>
+          <div class="field">
+            <label>&nbsp;</label>
+            <button type="button" id="journal-star-btn" class="star-toggle-btn" aria-pressed="false">&#9734; Star this entry</button>
+          </div>
         </div>
         <div class="field">
           <label for="journal-narrative">Market narrative / meta trends today</label>
@@ -260,6 +270,7 @@
         </div>
         <div class="form-actions">
           <button type="submit" class="btn-primary">Save Entry</button>
+          <button type="button" id="journal-new" class="btn-secondary">New Entry</button>
           <button type="button" id="journal-delete" class="btn-danger hidden">Delete Entry</button>
         </div>
         <p id="journal-status" class="status-msg"></p>
@@ -334,13 +345,16 @@
   <div id="calendar-modal" class="modal hidden">
     <div class="modal-content modal-wide">
       <button id="calendar-modal-close" class="modal-close-btn">&times;</button>
-      <h2>P&amp;L Calendar</h2>
+      <div class="totals-header">
+        <h2>P&amp;L Calendar</h2>
+        <span id="cal-month-label" class="cal-month-label-inline"></span>
+      </div>
       <div class="calendar-nav">
         <button id="cal-prev" class="btn-secondary">&larr; Prev</button>
-        <span id="cal-month-label"></span>
         <button id="cal-next" class="btn-secondary">Next &rarr;</button>
       </div>
       <p id="cal-month-total" class="cal-month-total"></p>
+      <p id="cal-currency-hint" class="hint centered-hint"></p>
       <p id="calendar-error" class="status-msg error hidden"></p>
       <div id="calendar-grid" class="calendar-grid"></div>
     </div>

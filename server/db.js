@@ -33,13 +33,32 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS journal_entries (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     entry_date TEXT NOT NULL UNIQUE,
+    title TEXT,
     narrative TEXT,
     volume TEXT,
     challenges TEXT,
     lessons TEXT,
+    starred INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT
   );
 `);
+
+// CREATE TABLE IF NOT EXISTS only helps for a brand-new database -- it won't
+// add columns to a trades/journal_entries table that already exists from
+// before contract_address/fees/title/starred were introduced. This keeps
+// an existing local database (with real logged trades/entries) from
+// breaking the moment the app starts referencing a column it doesn't have.
+function ensureColumn(table, column, definition) {
+  const existing = db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
+  if (!existing.includes(column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+
+ensureColumn('trades', 'contract_address', "TEXT NOT NULL DEFAULT ''");
+ensureColumn('trades', 'fees', 'REAL NOT NULL DEFAULT 0');
+ensureColumn('journal_entries', 'title', 'TEXT');
+ensureColumn('journal_entries', 'starred', 'INTEGER NOT NULL DEFAULT 0');
 
 module.exports = db;
