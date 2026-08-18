@@ -14,6 +14,8 @@
       <button class="tab-btn" data-view="list">Trade List</button>
       <button class="tab-btn" data-view="totals">Total P&amp;L</button>
       <button class="tab-btn" data-view="calendar">Calendar</button>
+      <button class="tab-btn" data-view="journal">Journal</button>
+      <button class="tab-btn" data-view="dashboard">Dashboard</button>
     </nav>
   </header>
 
@@ -185,6 +187,64 @@
       <p id="cal-month-total" class="cal-month-total"></p>
       <p id="calendar-error" class="status-msg error hidden"></p>
       <div id="calendar-grid" class="calendar-grid"></div>
+    </section>
+
+    <!-- DAILY JOURNAL VIEW -->
+    <section id="view-journal" class="view">
+      <h2>Daily Journal</h2>
+      <p class="hint">One entry per day &mdash; separate from individual trades. Saving on a date that already has an entry updates it.</p>
+      <form id="journal-form">
+        <div class="field">
+          <label for="journal-date">Date</label>
+          <input type="date" id="journal-date" required>
+        </div>
+        <div class="field">
+          <label for="journal-narrative">Market narrative / meta trends today</label>
+          <textarea id="journal-narrative" rows="2" placeholder="What was pumping, what narrative was dominant..."></textarea>
+        </div>
+        <div class="field">
+          <label for="journal-volume">Volume / activity</label>
+          <textarea id="journal-volume" rows="2" placeholder="Was it a high-volume degen day, or dead and quiet?"></textarea>
+        </div>
+        <div class="field">
+          <label for="journal-challenges">Challenges faced today</label>
+          <textarea id="journal-challenges" rows="2"></textarea>
+        </div>
+        <div class="field">
+          <label for="journal-lessons">Lessons of the day</label>
+          <textarea id="journal-lessons" rows="2"></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn-primary">Save Entry</button>
+          <button type="button" id="journal-delete" class="btn-danger hidden">Delete Entry</button>
+        </div>
+        <p id="journal-status" class="status-msg"></p>
+      </form>
+
+      <h3>Past Entries</h3>
+      <p id="journal-list-error" class="status-msg error hidden"></p>
+      <div id="journal-list" class="trade-list"></div>
+    </section>
+
+    <!-- DASHBOARD VIEW -->
+    <section id="view-dashboard" class="view">
+      <h2>Dashboard</h2>
+      <p id="dashboard-error" class="status-msg error hidden"></p>
+
+      <div id="dashboard-bullets" class="totals-summary"></div>
+
+      <h3>Recurring Patterns</h3>
+      <p class="hint">Frequency scan of your "lesson learned" and "thoughts during" notes &mdash; phrases showing up across multiple trades.</p>
+      <div id="dashboard-patterns" class="pattern-list"></div>
+
+      <h3>Performance by Emotional State</h3>
+      <div id="dashboard-by-emotion" class="corr-list"></div>
+
+      <h3>Performance by % Risked</h3>
+      <div id="dashboard-by-risk" class="corr-list"></div>
+
+      <h3>Performance by Grade</h3>
+      <div id="dashboard-by-grade" class="corr-list"></div>
     </section>
   </main>
 

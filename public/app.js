@@ -72,6 +72,8 @@ tabButtons.forEach((btn) => {
     if (btn.dataset.view === 'list') loadTradeList();
     if (btn.dataset.view === 'totals') loadTotals();
     if (btn.dataset.view === 'calendar') loadCalendar();
+    if (btn.dataset.view === 'journal') loadJournalList();
+    if (btn.dataset.view === 'dashboard') loadDashboard();
   });
 });
 
@@ -541,6 +543,169 @@ async function loadCalendar() {
     cell.innerHTML = `<span class="day-num">${day}</span>${pnl != null ? `<span class="day-pnl">${fmtCalAmount(pnl, 2)}</span>` : ''}`;
     grid.appendChild(cell);
   }
+}
+
+// ---------- Daily Journal ----------
+const journalForm = document.getElementById('journal-form');
+const journalDateInput = document.getElementById('journal-date');
+const journalStatus = document.getElementById('journal-status');
+const journalDeleteBtn = document.getElementById('journal-delete');
+const journalListEl = document.getElementById('journal-list');
+const journalListErrorEl = document.getElementById('journal-list-error');
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+journalDateInput.value = todayStr();
+
+function resetJournalForm(date) {
+  journalDateInput.value = date || todayStr();
+  document.getElementById('journal-narrative').value = '';
+  document.getElementById('journal-volume').value = '';
+  document.getElementById('journal-challenges').value = '';
+  document.getElementById('journal-lessons').value = '';
+  journalDeleteBtn.classList.add('hidden');
+  journalStatus.textContent = '';
+  journalStatus.className = 'status-msg';
+}
+
+async function loadJournalEntryIntoForm(date) {
+  try {
+    const entry = await api(`/api/journal/${date}`);
+    journalDateInput.value = entry.entry_date;
+    document.getElementById('journal-narrative').value = entry.narrative ?? '';
+    document.getElementById('journal-volume').value = entry.volume ?? '';
+    document.getElementById('journal-challenges').value = entry.challenges ?? '';
+    document.getElementById('journal-lessons').value = entry.lessons ?? '';
+    journalDeleteBtn.classList.remove('hidden');
+  } catch {
+    resetJournalForm(date);
+  }
+}
+
+journalForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  journalStatus.textContent = '';
+  journalStatus.className = 'status-msg';
+
+  const body = {
+    entry_date: journalDateInput.value,
+    narrative: document.getElementById('journal-narrative').value || null,
+    volume: document.getElementById('journal-volume').value || null,
+    challenges: document.getElementById('journal-challenges').value || null,
+    lessons: document.getElementById('journal-lessons').value || null,
+  };
+
+  try {
+    await api('/api/journal', { method: 'POST', body: JSON.stringify(body) });
+    journalStatus.textContent = 'Entry saved.';
+    journalStatus.classList.add('success');
+    journalDeleteBtn.classList.remove('hidden');
+    loadJournalList();
+  } catch (err) {
+    journalStatus.textContent = err.message;
+    journalStatus.classList.add('error');
+  }
+});
+
+journalDeleteBtn.addEventListener('click', async () => {
+  if (!confirm('Delete this journal entry? This cannot be undone.')) return;
+  try {
+    await api(`/api/journal/${journalDateInput.value}`, { method: 'DELETE' });
+    resetJournalForm();
+    loadJournalList();
+  } catch (err) {
+    journalStatus.textContent = err.message;
+    journalStatus.classList.add('error');
+  }
+});
+
+async function loadJournalList() {
+  let entries;
+  try {
+    entries = await api('/api/journal');
+    journalListErrorEl.classList.add('hidden');
+  } catch (err) {
+    journalListErrorEl.textContent = `Couldn't load journal entries: ${err.message}. Is the server running?`;
+    journalListErrorEl.classList.remove('hidden');
+    return;
+  }
+
+  journalListEl.innerHTML = '';
+  if (entries.length === 0) {
+    journalListEl.innerHTML = '<p class="hint">No journal entries yet.</p>';
+    return;
+  }
+
+  entries.forEach((e) => {
+    const preview = e.narrative || e.lessons || e.challenges || '(no notes)';
+    const card = document.createElement('div');
+    card.className = 'trade-card';
+    card.innerHTML = `
+      <div class="trade-card-top">
+        <span class="coin">${e.entry_date}</span>
+      </div>
+      <div class="trade-card-meta">${escapeHtml(preview.slice(0, 140))}${preview.length > 140 ? '…' : ''}</div>
+    `;
+    card.addEventListener('click', () => loadJournalEntryIntoForm(e.entry_date));
+    journalListEl.appendChild(card);
+  });
+}
+
+// ---------- Dashboard ----------
+function renderCorrList(containerId, rows) {
+  const el = document.getElementById(containerId);
+  if (rows.length === 0) {
+    el.innerHTML = '<p class="hint">Not enough closed trades yet.</p>';
+    return;
+  }
+
+  const maxAbs = Math.max(1, ...rows.map((r) => Math.abs(r.avgPnlPercent ?? 0)));
+
+  el.innerHTML = rows
+    .map((r) => {
+      const widthPct = r.avgPnlPercent == null ? 0 : Math.max(4, (Math.abs(r.avgPnlPercent) / maxAbs) * 100);
+      const cls = pnlClass(r.avgPnlPercent);
+      return `
+        <div class="corr-row">
+          <span class="corr-label">${escapeHtml(String(r.key))}</span>
+          <div class="corr-bar-track"><div class="corr-bar-fill ${cls}" style="width:${widthPct}%"></div></div>
+          <span class="corr-value ${cls}">${fmtPct(r.avgPnlPercent)} avg &middot; ${r.count} trade${r.count === 1 ? '' : 's'} &middot; ${r.winRate ?? 0}% win</span>
+        </div>
+      `;
+    })
+    .join('');
+}
+
+async function loadDashboard() {
+  const dashboardErrorEl = document.getElementById('dashboard-error');
+  let data;
+  try {
+    data = await api('/api/dashboard');
+    dashboardErrorEl.classList.add('hidden');
+  } catch (err) {
+    dashboardErrorEl.textContent = `Couldn't load dashboard: ${err.message}. Is the server running?`;
+    dashboardErrorEl.classList.remove('hidden');
+    return;
+  }
+
+  document.getElementById('dashboard-bullets').innerHTML =
+    '<ul class="bullet-list">' + data.bullets.map((b) => `<li>${escapeHtml(b)}</li>`).join('') + '</ul>';
+
+  const patternsEl = document.getElementById('dashboard-patterns');
+  if (data.patterns.length === 0) {
+    patternsEl.innerHTML = '<p class="hint">No recurring phrases yet &mdash; keep logging lessons and thoughts on your trades.</p>';
+  } else {
+    patternsEl.innerHTML = data.patterns
+      .map((p) => `<span class="pattern-pill">${escapeHtml(p.phrase)} <span class="pattern-count">${p.count}</span></span>`)
+      .join('');
+  }
+
+  renderCorrList('dashboard-by-emotion', data.byEmotion);
+  renderCorrList('dashboard-by-risk', data.byRisk);
+  renderCorrList('dashboard-by-grade', data.byGrade);
 }
 
 // initial load

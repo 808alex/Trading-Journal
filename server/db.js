@@ -29,6 +29,17 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     closed_at TEXT
   );
+
+  CREATE TABLE IF NOT EXISTS journal_entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entry_date TEXT NOT NULL UNIQUE,
+    narrative TEXT,
+    volume TEXT,
+    challenges TEXT,
+    lessons TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT
+  );
 `);
 
 module.exports = db;
