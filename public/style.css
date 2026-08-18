@@ -1,33 +1,80 @@
 :root {
-  --bg: #0f1115;
-  --panel: #171a21;
-  --border: #2a2f3a;
-  --text: #e6e8eb;
-  --text-dim: #9aa1ac;
-  --accent: #4f8cff;
-  --green: #35c46a;
-  --green-light: #8fd99f;
-  --red: #e5484d;
-  --yellow: #e0b03f;
+  --bg: #0b0a13;
+  --panel: #16131f;
+  --panel-alt: #1c1830;
+  --border: #2b2440;
+  --text: #f1eef9;
+  --text-dim: #9993b3;
+  --accent: #8b5cf6;
+  --accent-2: #22d3ee;
+  --green: #2fe6a4;
+  --green-light: #8ff0c8;
+  --red: #ff5577;
+  --yellow: #ffcc4d;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 * { box-sizing: border-box; }
 
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes goldShimmer {
+  0%, 100% { box-shadow: 0 0 6px 0 rgba(255, 204, 77, 0.35); }
+  50% { box-shadow: 0 0 14px 2px rgba(255, 204, 77, 0.65); }
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
 body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
+  position: relative;
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(600px circle at 12% 0%, rgba(139, 92, 246, 0.16), transparent 55%),
+    radial-gradient(500px circle at 90% 15%, rgba(34, 211, 238, 0.10), transparent 55%),
+    radial-gradient(700px circle at 50% 100%, rgba(139, 92, 246, 0.08), transparent 60%),
+    var(--bg);
+}
+
+.mono, .pnl-pos, .pnl-neg, .pnl-neutral, .big-number, .day-pnl, .cal-month-total {
+  font-family: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
 }
 
 .app-header {
   padding: 1.25rem 2rem 0;
   border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(6px);
 }
 
 .app-header h1 {
   margin: 0 0 1rem;
   font-size: 1.4rem;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: linear-gradient(90deg, var(--text) 30%, var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: 0.2px;
 }
 
 .tabs {
@@ -43,7 +90,10 @@ body {
   cursor: pointer;
   font-size: 0.95rem;
   border-bottom: 2px solid transparent;
+  transition: color 150ms ease, border-color 150ms ease;
 }
+
+.tab-btn:hover { color: var(--text); }
 
 .tab-btn.active {
   color: var(--text);
@@ -57,7 +107,7 @@ main {
 }
 
 .view { display: none; }
-.view.active { display: block; }
+.view.active { display: block; animation: fadeInUp 280ms ease; }
 
 h2 { margin-top: 0; }
 
@@ -88,11 +138,13 @@ input, select, textarea {
   border-radius: 6px;
   font-size: 0.95rem;
   font-family: inherit;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 
 input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18);
 }
 
 .hint {
@@ -132,12 +184,15 @@ h3 {
   border-radius: 6px;
   font-size: 0.8rem;
   cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
 }
+
+.toggle-btn:hover { color: var(--text); }
 
 .toggle-btn.active {
   color: var(--text);
   border-color: var(--accent);
-  background: rgba(79, 140, 255, 0.12);
+  background: rgba(139, 92, 246, 0.16);
 }
 
 .form-actions {
@@ -146,19 +201,23 @@ h3 {
   margin-top: 0.5rem;
 }
 
-.btn-primary, .btn-secondary {
+.btn-primary, .btn-secondary, .btn-danger {
   cursor: pointer;
   border-radius: 6px;
   font-size: 0.9rem;
   padding: 0.6rem 1.1rem;
   border: 1px solid transparent;
+  transition: transform 120ms ease, box-shadow 150ms ease, filter 150ms ease, border-color 150ms ease, background 150ms ease;
 }
 
 .btn-primary {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
   color: white;
   border: none;
 }
+
+.btn-primary:hover { filter: brightness(1.1); box-shadow: 0 4px 16px -4px rgba(139, 92, 246, 0.55); }
+.btn-primary:active { transform: scale(0.97); }
 
 .btn-secondary {
   background: transparent;
@@ -166,15 +225,22 @@ h3 {
   border-color: var(--border);
 }
 
+.btn-secondary:hover { border-color: var(--accent); color: var(--text); }
+.btn-secondary:active { transform: scale(0.97); }
+
 .btn-danger {
   background: transparent;
   color: var(--red);
   border: 1px solid var(--red);
 }
 
+.btn-danger:hover { background: rgba(255, 85, 119, 0.1); }
+.btn-danger:active { transform: scale(0.97); }
+
 .status-msg {
   margin-top: 0.75rem;
   font-size: 0.9rem;
+  animation: fadeInUp 200ms ease;
 }
 
 .status-msg.error { color: var(--red); }
@@ -223,9 +289,16 @@ h3 {
   border-radius: 8px;
   padding: 1rem;
   cursor: pointer;
+  transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+  animation: fadeInUp 220ms ease;
 }
 
-.trade-card:hover { border-color: var(--accent); }
+.trade-card:hover {
+  border-color: var(--accent);
+  background: var(--panel-alt);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -10px rgba(139, 92, 246, 0.45);
+}
 
 .trade-card-top {
   display: flex;
@@ -240,7 +313,9 @@ h3 {
 .pnl-neutral { color: var(--text-dim); }
 
 .badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   font-size: 0.75rem;
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
@@ -251,6 +326,15 @@ h3 {
 
 .badge.status-open { color: var(--green); border-color: var(--green); }
 .badge.status-closed { color: var(--red); border-color: var(--red); }
+
+.badge.status-open::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulseDot 1.6s ease-in-out infinite;
+}
 
 .badge.grade-A { color: var(--green); border-color: var(--green); }
 .badge.grade-B { color: var(--green-light); border-color: var(--green-light); }
@@ -268,6 +352,7 @@ h3 {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 1.5rem;
+  animation: fadeInUp 250ms ease;
 }
 
 .totals-summary .big-number {
@@ -303,6 +388,7 @@ h3 {
   font-size: 2.2rem;
   font-weight: 700;
   margin: 0.5rem 0 1rem;
+  transition: color 200ms ease;
 }
 
 .sol-price-input {
@@ -332,14 +418,21 @@ h3 {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  transition: transform 150ms ease;
 }
 
 .cal-cell.empty { border: none; }
 .cal-cell.no-trades { background: var(--panel); color: var(--text-dim); }
-.cal-cell.pnl-pos { background: rgba(53, 196, 106, 0.18); border-color: var(--green); }
-.cal-cell.pnl-neg { background: rgba(229, 72, 77, 0.18); border-color: var(--red); }
-.cal-cell.pnl-gold { background: rgba(224, 176, 63, 0.28); border-color: var(--yellow); }
+.cal-cell.pnl-pos { background: rgba(47, 230, 164, 0.16); border-color: var(--green); }
+.cal-cell.pnl-neg { background: rgba(255, 85, 119, 0.16); border-color: var(--red); }
+.cal-cell.pnl-gold {
+  background: rgba(255, 204, 77, 0.22);
+  border-color: var(--yellow);
+  animation: goldShimmer 2.2s ease-in-out infinite;
+}
 .cal-cell.pnl-gold .day-pnl { color: var(--yellow); }
+
+.cal-cell:not(.empty):not(.no-trades):hover { transform: scale(1.05); z-index: 1; }
 
 .cal-cell .day-num {
   position: absolute;
@@ -360,7 +453,8 @@ h3 {
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.6);
+  background: rgba(6, 5, 12, 0.7);
+  backdrop-filter: blur(3px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -378,6 +472,8 @@ h3 {
   max-height: 85vh;
   overflow-y: auto;
   position: relative;
+  box-shadow: 0 24px 60px -20px rgba(139, 92, 246, 0.35);
+  animation: modalIn 200ms ease;
 }
 
 .modal-close-btn {
@@ -389,4 +485,15 @@ h3 {
   color: var(--text-dim);
   font-size: 1.3rem;
   cursor: pointer;
+  transition: color 150ms ease, transform 150ms ease;
+}
+
+.modal-close-btn:hover { color: var(--red); transform: rotate(90deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
