@@ -62,19 +62,22 @@ initValueToggles(document);
 const tabButtons = document.querySelectorAll('.tab-btn');
 const views = document.querySelectorAll('.view');
 
-tabButtons.forEach((btn) => {
-  btn.addEventListener('click', () => {
-    tabButtons.forEach((b) => b.classList.remove('active'));
-    views.forEach((v) => v.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById(`view-${btn.dataset.view}`).classList.add('active');
+function switchToView(viewName) {
+  tabButtons.forEach((b) => b.classList.toggle('active', b.dataset.view === viewName));
+  views.forEach((v) => v.classList.toggle('active', v.id === `view-${viewName}`));
 
-    if (btn.dataset.view === 'list') loadTradeList();
-    if (btn.dataset.view === 'totals') loadTotals();
-    if (btn.dataset.view === 'calendar') loadCalendar();
-    if (btn.dataset.view === 'journal') loadJournalList();
-    if (btn.dataset.view === 'dashboard') loadDashboard();
-  });
+  if (viewName === 'list') loadTradeList();
+  if (viewName === 'totals') loadTotals();
+  if (viewName === 'journal') loadJournalList();
+  if (viewName === 'dashboard') loadDashboard();
+}
+
+tabButtons.forEach((btn) => {
+  btn.addEventListener('click', () => switchToView(btn.dataset.view));
+});
+
+document.querySelectorAll('.quick-link-btn').forEach((btn) => {
+  btn.addEventListener('click', () => switchToView(btn.dataset.view));
 });
 
 // ---------- API helpers ----------
@@ -92,6 +95,25 @@ function fmtSol(n, decimals = 3) {
   if (n == null) return '—';
   const sign = n > 0 ? '+' : '';
   return `${sign}${n.toFixed(decimals)} SOL`;
+}
+
+// ---------- Global currency setting (Settings tab) ----------
+// A single app-wide display currency, not per-view -- the underlying data
+// is always stored/computed in SOL. Persisted so it survives a reload.
+let appCurrency = localStorage.getItem('appCurrency') || 'sol';
+let solPriceUsd = Number(localStorage.getItem('solPriceUsd')) || null;
+
+// Displays a SOL amount in whichever currency is set in Settings. USD uses
+// standard 2dp currency formatting (0dp above $1000).
+function fmtMoney(sol, decimals) {
+  if (sol == null) return '—';
+  if (appCurrency === 'usd' && solPriceUsd) {
+    const usd = sol * solPriceUsd;
+    const sign = usd > 0 ? '+' : usd < 0 ? '-' : '';
+    const abs = Math.abs(usd);
+    return `${sign}$${abs >= 1000 ? abs.toFixed(0) : abs.toFixed(2)}`;
+  }
+  return fmtSol(sol, decimals);
 }
 
 function fmtPct(n) {
@@ -174,7 +196,7 @@ function renderTradeCard(t) {
         <span class="badge status-${t.status}">${t.status}</span>
         ${t.grade ? `<span class="badge grade-${t.grade}">${t.grade}</span>` : ''}
       </span>
-      <span class="${pnlClass(t.pnl_amount)}">${fmtSol(t.pnl_amount)} (${fmtPct(t.pnl_percent)})</span>
+      <span class="${pnlClass(t.pnl_amount)}">${fmtMoney(t.pnl_amount)} (${fmtPct(t.pnl_percent)})</span>
     </div>
     <div class="trade-card-meta">${escapeHtml(t.contract_address)}</div>
     <div class="trade-card-meta">${date} · ${t.percent_risked}% risked · ${EMOTIONAL_LABELS[t.emotional_state] || t.emotional_state}</div>
@@ -322,7 +344,7 @@ async function openTradeModal(id) {
       </select>
     </div>
 
-    <p>P&amp;L: <span class="${pnlClass(t.pnl_amount)}">${fmtSol(t.pnl_amount)} (${fmtPct(t.pnl_percent)})</span></p>
+    <p>P&amp;L: <span class="${pnlClass(t.pnl_amount)}">${fmtMoney(t.pnl_amount)} (${fmtPct(t.pnl_percent)})</span></p>
 
     <div style="display:flex; gap:0.6rem; margin-top:1rem;">
       <button id="m-save" class="btn-secondary">Save</button>
@@ -388,6 +410,34 @@ async function openTradeModal(id) {
 }
 
 // ---------- Totals ----------
+let totalsPeriod = 'all';
+
+// Calendar-based periods (not rolling windows), consistent with how the
+// Calendar view already buckets days -- "this week" runs Sun-Sat like the
+// calendar grid, "this month"/"this year" match the calendar's own units.
+function isInPeriod(dateStr, period) {
+  if (period === 'all') return true;
+  const d = new Date(`${dateStr}T00:00:00`);
+  const now = new Date();
+  if (period === 'D') return dateStr === todayStr();
+  if (period === 'W') {
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    return d >= startOfWeek;
+  }
+  if (period === 'M') return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  if (period === 'Y') return d.getFullYear() === now.getFullYear();
+  return true;
+}
+
+document.querySelectorAll('.value-toggle[data-toggle-group="totals-period"] .toggle-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    totalsPeriod = btn.dataset.type;
+    loadTotals();
+  });
+});
+
 async function loadTotals() {
   const totalsErrorEl = document.getElementById('totals-error');
   let trades;
@@ -400,26 +450,38 @@ async function loadTotals() {
     document.getElementById('totals-summary').innerHTML = '';
     return;
   }
-  const closed = trades.filter((t) => t.status === 'closed');
+  const openCount = trades.filter((t) => t.status === 'open').length;
+  const closed = trades
+    .filter((t) => t.status === 'closed')
+    .filter((t) => isInPeriod((t.closed_at || t.created_at).slice(0, 10), totalsPeriod));
+
   const totalPnl = closed.reduce((sum, t) => sum + (t.pnl_amount || 0), 0);
   const wins = closed.filter((t) => t.pnl_amount > 0).length;
   const losses = closed.filter((t) => t.pnl_amount < 0).length;
   const winRate = closed.length ? ((wins / closed.length) * 100).toFixed(1) : '0.0';
+  const periodLabel = { all: 'all time', D: 'today', W: 'this week', M: 'this month', Y: 'this year' }[totalsPeriod];
 
   document.getElementById('totals-summary').innerHTML = `
-    <div class="big-number ${pnlClass(totalPnl)}">${fmtSol(totalPnl)}</div>
-    <p class="hint">Total P&amp;L across ${closed.length} closed trade${closed.length === 1 ? '' : 's'}</p>
-    <div class="stat-row"><span>Open trades</span><span>${trades.length - closed.length}</span></div>
+    <div class="big-number ${pnlClass(totalPnl)}">${fmtMoney(totalPnl)}</div>
+    <p class="hint">P&amp;L across ${closed.length} closed trade${closed.length === 1 ? '' : 's'} &mdash; ${periodLabel}</p>
+    <div class="stat-row"><span>Open trades</span><span>${openCount}</span></div>
     <div class="stat-row"><span>Wins / Losses</span><span>${wins} / ${losses}</span></div>
     <div class="stat-row"><span>Win rate</span><span>${winRate}%</span></div>
   `;
 }
 
-// ---------- Calendar ----------
+// ---------- Calendar (opens as a modal from the Total P&L view) ----------
 let calCursor = new Date();
 calCursor.setDate(1);
-let calCurrency = 'sol';
-let solPriceUsd = Number(localStorage.getItem('solPriceUsd')) || null;
+
+const calendarModal = document.getElementById('calendar-modal');
+
+document.getElementById('open-calendar-btn').addEventListener('click', () => {
+  calendarModal.classList.remove('hidden');
+  loadCalendar();
+});
+document.getElementById('calendar-modal-close').addEventListener('click', () => calendarModal.classList.add('hidden'));
+calendarModal.addEventListener('click', (e) => { if (e.target === calendarModal) calendarModal.classList.add('hidden'); });
 
 document.getElementById('cal-prev').addEventListener('click', () => {
   calCursor.setMonth(calCursor.getMonth() - 1);
@@ -429,37 +491,6 @@ document.getElementById('cal-next').addEventListener('click', () => {
   calCursor.setMonth(calCursor.getMonth() + 1);
   loadCalendar();
 });
-
-const solPriceInput = document.getElementById('sol-price-usd');
-if (solPriceUsd) solPriceInput.value = solPriceUsd;
-
-document.querySelectorAll('.value-toggle[data-toggle-group="cal-currency"] .toggle-btn').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    calCurrency = btn.dataset.type;
-    solPriceInput.classList.toggle('hidden', calCurrency !== 'usd');
-    loadCalendar();
-  });
-});
-
-solPriceInput.addEventListener('input', () => {
-  const val = Number(solPriceInput.value);
-  solPriceUsd = val > 0 ? val : null;
-  if (solPriceUsd) localStorage.setItem('solPriceUsd', solPriceUsd);
-  loadCalendar();
-});
-
-// Displays a SOL amount in whichever currency is currently toggled.
-// USD always uses standard 2dp currency formatting (0dp above $1000),
-// independent of the SOL decimal precision requested.
-function fmtCalAmount(sol, decimals) {
-  if (calCurrency === 'usd' && solPriceUsd) {
-    const usd = sol * solPriceUsd;
-    const sign = usd > 0 ? '+' : usd < 0 ? '-' : '';
-    const abs = Math.abs(usd);
-    return `${sign}$${abs >= 1000 ? abs.toFixed(0) : abs.toFixed(2)}`;
-  }
-  return fmtSol(sol, decimals);
-}
 
 // "Gold day" = an outlier-good profit day. Using the median of only the
 // profitable days (not all days) as the baseline keeps bad days from
@@ -513,7 +544,7 @@ async function loadCalendar() {
     .reduce((sum, [, v]) => sum + v, 0);
 
   const monthTotalEl = document.getElementById('cal-month-total');
-  monthTotalEl.textContent = `Month total: ${fmtCalAmount(monthTotal, 3)}`;
+  monthTotalEl.textContent = `Month total: ${fmtMoney(monthTotal, 3)}`;
   monthTotalEl.className = `cal-month-total ${pnlClass(monthTotal)}`;
 
   const grid = document.getElementById('calendar-grid');
@@ -540,7 +571,7 @@ async function loadCalendar() {
     const cell = document.createElement('div');
     cell.className = `cal-cell ${pnl == null ? 'no-trades' : isGold ? 'pnl-gold' : pnlClass(pnl)}`;
     cell.title = pnl != null ? `${fmtSol(pnl)}${isGold ? ' — gold day' : ''}` : '';
-    cell.innerHTML = `<span class="day-num">${day}</span>${pnl != null ? `<span class="day-pnl">${fmtCalAmount(pnl, 2)}</span>` : ''}`;
+    cell.innerHTML = `<span class="day-num">${day}</span>${pnl != null ? `<span class="day-pnl">${fmtMoney(pnl, 2)}</span>` : ''}`;
     grid.appendChild(cell);
   }
 }
@@ -708,5 +739,66 @@ async function loadDashboard() {
   renderCorrList('dashboard-by-grade', data.byGrade);
 }
 
+// ---------- Settings ----------
+const usernameInput = document.getElementById('settings-username');
+const dashboardGreeting = document.getElementById('dashboard-greeting');
+
+function applyGreeting() {
+  const name = localStorage.getItem('displayName');
+  if (name) {
+    dashboardGreeting.textContent = `Welcome back, ${name}.`;
+    dashboardGreeting.classList.remove('hidden');
+  } else {
+    dashboardGreeting.classList.add('hidden');
+  }
+}
+
+usernameInput.value = localStorage.getItem('displayName') || '';
+applyGreeting();
+
+let usernameDebounce;
+usernameInput.addEventListener('input', () => {
+  clearTimeout(usernameDebounce);
+  usernameDebounce = setTimeout(() => {
+    if (usernameInput.value.trim()) localStorage.setItem('displayName', usernameInput.value.trim());
+    else localStorage.removeItem('displayName');
+    applyGreeting();
+  }, 400);
+});
+
+const settingsSolPriceInput = document.getElementById('settings-sol-price');
+if (solPriceUsd) settingsSolPriceInput.value = solPriceUsd;
+settingsSolPriceInput.classList.toggle('hidden', appCurrency !== 'usd');
+
+document.querySelectorAll('.value-toggle[data-toggle-group="settings-currency"] .toggle-btn').forEach((btn) => {
+  if (btn.dataset.type === appCurrency) {
+    document.querySelectorAll('.value-toggle[data-toggle-group="settings-currency"] .toggle-btn').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  btn.addEventListener('click', () => {
+    appCurrency = btn.dataset.type;
+    localStorage.setItem('appCurrency', appCurrency);
+    settingsSolPriceInput.classList.toggle('hidden', appCurrency !== 'usd');
+  });
+});
+
+settingsSolPriceInput.addEventListener('input', () => {
+  const val = Number(settingsSolPriceInput.value);
+  solPriceUsd = val > 0 ? val : null;
+  if (solPriceUsd) localStorage.setItem('solPriceUsd', solPriceUsd);
+});
+
+// Only the accent/background tint changes per theme -- green/red/gold stay
+// fixed everywhere since they carry P&L meaning, not brand identity.
+document.querySelectorAll('.theme-swatch').forEach((btn) => {
+  if (btn.dataset.theme === (localStorage.getItem('appTheme') || 'violet')) btn.classList.add('active');
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.theme-swatch').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.documentElement.setAttribute('data-theme', btn.dataset.theme);
+    localStorage.setItem('appTheme', btn.dataset.theme);
+  });
+});
+
 // initial load
-loadTradeList();
+loadDashboard();

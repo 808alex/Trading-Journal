@@ -5,23 +5,61 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trading Journal</title>
 <link rel="stylesheet" href="style.css">
+<script>
+  // Applied before first paint so switching themes in Settings doesn't
+  // cause a flash of the default theme on the next page load.
+  (function () {
+    var theme = localStorage.getItem('appTheme');
+    if (theme) document.documentElement.setAttribute('data-theme', theme);
+  })();
+</script>
 </head>
 <body>
   <header class="app-header">
     <h1>Trading Journal</h1>
     <nav class="tabs">
-      <button class="tab-btn active" data-view="add">Log Trade</button>
+      <button class="tab-btn active" data-view="dashboard">Dashboard</button>
+      <button class="tab-btn" data-view="add">Log Trade</button>
       <button class="tab-btn" data-view="list">Trade List</button>
       <button class="tab-btn" data-view="totals">Total P&amp;L</button>
-      <button class="tab-btn" data-view="calendar">Calendar</button>
       <button class="tab-btn" data-view="journal">Journal</button>
-      <button class="tab-btn" data-view="dashboard">Dashboard</button>
+      <button class="tab-btn" data-view="settings">Settings</button>
     </nav>
   </header>
 
   <main>
+    <!-- DASHBOARD VIEW -->
+    <section id="view-dashboard" class="view active">
+      <h2>Dashboard</h2>
+      <p id="dashboard-greeting" class="hint hidden"></p>
+
+      <div class="quick-links">
+        <button class="quick-link-btn" data-view="add">+ Log a Trade</button>
+        <button class="quick-link-btn" data-view="list">Trade List</button>
+        <button class="quick-link-btn" data-view="totals">Total P&amp;L</button>
+        <button class="quick-link-btn" data-view="journal">Journal</button>
+      </div>
+
+      <p id="dashboard-error" class="status-msg error hidden"></p>
+
+      <div id="dashboard-bullets" class="totals-summary"></div>
+
+      <h3>Recurring Patterns</h3>
+      <p class="hint">Frequency scan of your "lesson learned" and "thoughts during" notes &mdash; phrases showing up across multiple trades.</p>
+      <div id="dashboard-patterns" class="pattern-list"></div>
+
+      <h3>Performance by Emotional State</h3>
+      <div id="dashboard-by-emotion" class="corr-list"></div>
+
+      <h3>Performance by % Risked</h3>
+      <div id="dashboard-by-risk" class="corr-list"></div>
+
+      <h3>Performance by Grade</h3>
+      <div id="dashboard-by-grade" class="corr-list"></div>
+    </section>
+
     <!-- ADD / LOG TRADE VIEW -->
-    <section id="view-add" class="view active">
+    <section id="view-add" class="view">
       <h2>Log a Trade</h2>
       <p class="hint">Fill in entry details, and exit + reflection too if the trade's already done — no need to come back later.</p>
       <form id="add-trade-form">
@@ -166,27 +204,19 @@
 
     <!-- TOTALS VIEW -->
     <section id="view-totals" class="view">
-      <h2>Total P&amp;L</h2>
+      <div class="totals-header">
+        <h2>Total P&amp;L</h2>
+        <button id="open-calendar-btn" class="btn-secondary">&#128197; Calendar</button>
+      </div>
+      <div class="value-toggle" data-toggle-group="totals-period">
+        <button type="button" class="toggle-btn active" data-type="all">All</button>
+        <button type="button" class="toggle-btn" data-type="D">D</button>
+        <button type="button" class="toggle-btn" data-type="W">W</button>
+        <button type="button" class="toggle-btn" data-type="M">M</button>
+        <button type="button" class="toggle-btn" data-type="Y">Y</button>
+      </div>
       <p id="totals-error" class="status-msg error hidden"></p>
       <div id="totals-summary" class="totals-summary"></div>
-    </section>
-
-    <!-- CALENDAR VIEW -->
-    <section id="view-calendar" class="view">
-      <h2>P&amp;L Calendar</h2>
-      <div class="calendar-nav">
-        <button id="cal-prev" class="btn-secondary">&larr; Prev</button>
-        <span id="cal-month-label"></span>
-        <button id="cal-next" class="btn-secondary">Next &rarr;</button>
-        <div class="value-toggle" data-toggle-group="cal-currency">
-          <button type="button" class="toggle-btn active" data-type="sol">SOL</button>
-          <button type="button" class="toggle-btn" data-type="usd">USD</button>
-        </div>
-        <input type="number" step="any" id="sol-price-usd" placeholder="SOL price in $" class="sol-price-input hidden">
-      </div>
-      <p id="cal-month-total" class="cal-month-total"></p>
-      <p id="calendar-error" class="status-msg error hidden"></p>
-      <div id="calendar-grid" class="calendar-grid"></div>
     </section>
 
     <!-- DAILY JOURNAL VIEW -->
@@ -226,25 +256,34 @@
       <div id="journal-list" class="trade-list"></div>
     </section>
 
-    <!-- DASHBOARD VIEW -->
-    <section id="view-dashboard" class="view">
-      <h2>Dashboard</h2>
-      <p id="dashboard-error" class="status-msg error hidden"></p>
+    <!-- SETTINGS VIEW -->
+    <section id="view-settings" class="view">
+      <h2>Settings</h2>
 
-      <div id="dashboard-bullets" class="totals-summary"></div>
+      <h3>Profile</h3>
+      <div class="field">
+        <label for="settings-username">Display name</label>
+        <input type="text" id="settings-username" placeholder="What should we call you?">
+      </div>
 
-      <h3>Recurring Patterns</h3>
-      <p class="hint">Frequency scan of your "lesson learned" and "thoughts during" notes &mdash; phrases showing up across multiple trades.</p>
-      <div id="dashboard-patterns" class="pattern-list"></div>
+      <h3>Currency</h3>
+      <p class="hint">Applies everywhere P&amp;L is shown &mdash; the underlying data always stays in SOL, this is just how it's displayed.</p>
+      <div class="field">
+        <div class="value-toggle" data-toggle-group="settings-currency">
+          <button type="button" class="toggle-btn active" data-type="sol">SOL</button>
+          <button type="button" class="toggle-btn" data-type="usd">USD</button>
+        </div>
+        <input type="number" step="any" id="settings-sol-price" placeholder="SOL price in $" class="sol-price-input hidden">
+      </div>
 
-      <h3>Performance by Emotional State</h3>
-      <div id="dashboard-by-emotion" class="corr-list"></div>
-
-      <h3>Performance by % Risked</h3>
-      <div id="dashboard-by-risk" class="corr-list"></div>
-
-      <h3>Performance by Grade</h3>
-      <div id="dashboard-by-grade" class="corr-list"></div>
+      <h3>Theme</h3>
+      <div class="theme-picker">
+        <button type="button" class="theme-swatch" data-theme="violet" style="--sw1:#8b5cf6;--sw2:#22d3ee">Violet</button>
+        <button type="button" class="theme-swatch" data-theme="emerald" style="--sw1:#10b981;--sw2:#eab308">Emerald</button>
+        <button type="button" class="theme-swatch" data-theme="crimson" style="--sw1:#f43f5e;--sw2:#fb923c">Crimson</button>
+        <button type="button" class="theme-swatch" data-theme="ocean" style="--sw1:#3b82f6;--sw2:#06b6d4">Ocean</button>
+      </div>
+      <p class="hint">Profit/loss colors (green/red/gold) stay the same across every theme &mdash; only the accent changes.</p>
     </section>
   </main>
 
@@ -253,6 +292,22 @@
     <div class="modal-content">
       <button id="modal-close" class="modal-close-btn">&times;</button>
       <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- CALENDAR MODAL -->
+  <div id="calendar-modal" class="modal hidden">
+    <div class="modal-content modal-wide">
+      <button id="calendar-modal-close" class="modal-close-btn">&times;</button>
+      <h2>P&amp;L Calendar</h2>
+      <div class="calendar-nav">
+        <button id="cal-prev" class="btn-secondary">&larr; Prev</button>
+        <span id="cal-month-label"></span>
+        <button id="cal-next" class="btn-secondary">Next &rarr;</button>
+      </div>
+      <p id="cal-month-total" class="cal-month-total"></p>
+      <p id="calendar-error" class="status-msg error hidden"></p>
+      <div id="calendar-grid" class="calendar-grid"></div>
     </div>
   </div>
 
