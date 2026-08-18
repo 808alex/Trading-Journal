@@ -1,0 +1,31 @@
+{
+  "name": "journal-app",
+  "version": "1.0.0",
+  "description": "Personal memecoin/crypto paper trading journal",
+  "main": "server/index.js",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "nodemon server/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/808alex/Trading-Journal.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/808alex/Trading-Journal/issues"
+  },
+  "homepage": "https://github.com/808alex/Trading-Journal#readme",
+  "dependencies": {
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
