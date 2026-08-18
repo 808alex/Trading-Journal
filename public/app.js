@@ -780,19 +780,34 @@ async function loadDashboard() {
 // ---------- Settings ----------
 const usernameInput = document.getElementById('settings-username');
 const dashboardGreeting = document.getElementById('dashboard-greeting');
+const accountAvatar = document.getElementById('account-avatar');
+const accountName = document.getElementById('account-name');
 
-function applyGreeting() {
+function getInitials(name) {
+  const parts = name.trim().split(/\s+/);
+  return parts.length === 1 ? parts[0][0].toUpperCase() : (parts[0][0] + parts[1][0]).toUpperCase();
+}
+
+// Drives both the Dashboard's "Welcome back" line and the bottom-left
+// account widget -- no real accounts, just a personalization touch built
+// from the display name in Settings. No name set yet = a "Guest" avatar
+// that doubles as a nudge toward Settings.
+function applyProfile() {
   const name = localStorage.getItem('displayName');
   if (name) {
     dashboardGreeting.textContent = `Welcome back, ${name}.`;
     dashboardGreeting.classList.remove('hidden');
+    accountAvatar.textContent = getInitials(name);
+    accountName.textContent = name;
   } else {
     dashboardGreeting.classList.add('hidden');
+    accountAvatar.textContent = '?';
+    accountName.textContent = 'Guest';
   }
 }
 
 usernameInput.value = localStorage.getItem('displayName') || '';
-applyGreeting();
+applyProfile();
 
 let usernameDebounce;
 usernameInput.addEventListener('input', () => {
@@ -800,9 +815,12 @@ usernameInput.addEventListener('input', () => {
   usernameDebounce = setTimeout(() => {
     if (usernameInput.value.trim()) localStorage.setItem('displayName', usernameInput.value.trim());
     else localStorage.removeItem('displayName');
-    applyGreeting();
+    applyProfile();
   }, 400);
 });
+
+document.getElementById('settings-icon-btn').addEventListener('click', () => switchToView('settings'));
+document.getElementById('account-widget').addEventListener('click', () => switchToView('settings'));
 
 const settingsCurrencySelect = document.getElementById('settings-currency');
 const settingsSolPriceInput = document.getElementById('settings-sol-price');

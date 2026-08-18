@@ -20,7 +20,10 @@
       <span></span><span></span><span></span>
     </button>
     <h1>Trading Journal</h1>
-    <button id="back-btn" class="back-btn hidden">&larr; Back</button>
+    <div class="header-actions">
+      <button id="back-btn" class="back-btn hidden">&larr; Back</button>
+      <button id="settings-icon-btn" class="icon-btn" aria-label="Settings" title="Settings">&#9881;</button>
+    </div>
   </header>
 
   <div id="nav-backdrop" class="nav-backdrop hidden"></div>
@@ -33,13 +36,15 @@
     <button class="tab-btn" data-view="settings">Settings</button>
   </nav>
 
+  <div id="account-widget" class="account-widget" title="Open Settings">
+    <div id="account-avatar" class="account-avatar">?</div>
+    <span id="account-name">Guest</span>
+  </div>
+
   <main>
     <!-- DASHBOARD VIEW -->
     <section id="view-dashboard" class="view active">
-      <div class="totals-header">
-        <h2>Dashboard</h2>
-        <button class="quick-link-btn" data-view="settings">&#9881; Settings</button>
-      </div>
+      <h2>Dashboard</h2>
       <p id="dashboard-greeting" class="hint hidden"></p>
 
       <div class="quick-links">
