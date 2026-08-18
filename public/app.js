@@ -123,14 +123,18 @@ function fmtSol(n, decimals = 3) {
   return `${sign}${n.toFixed(decimals)} SOL`;
 }
 
-// ---------- Global currency setting (Settings tab) ----------
-// A single app-wide display currency, not per-view -- the underlying data
-// is always stored/computed in SOL. Persisted so it survives a reload.
-// SOL itself needs no conversion; each fiat option remembers its own rate
-// (SOL/USD and SOL/EUR are different numbers) so switching back and forth
-// doesn't lose what you typed.
+// ---------- Currency setting (Settings tab) ----------
+// Two separate concerns: `defaultCurrency` is which fiat currency Settings
+// is configured for (usd/gbp/eur/jpy) and its rate; `displayMode` is
+// whether the app is *currently* showing SOL or that fiat currency right
+// now. Settings only controls the former -- the latter gets a quick SOL/
+// {currency} toggle on Total P&L and the Calendar, so you don't have to
+// dig into Settings every time you want to flip between the two. Both are
+// global (not per-page) so toggling one place keeps everything in sync.
 const CURRENCY_SYMBOLS = { usd: '$', gbp: '£', eur: '€', jpy: '¥' };
-let appCurrency = localStorage.getItem('appCurrency') || 'usd';
+
+let defaultCurrency = localStorage.getItem('defaultCurrency');
+let displayMode = localStorage.getItem('displayMode');
 let solPrices = {};
 try {
   solPrices = JSON.parse(localStorage.getItem('solPrices') || '{}');
@@ -138,18 +142,32 @@ try {
   solPrices = {};
 }
 
-// Displays a SOL amount in whichever currency is set in Settings. Standard
-// 2dp currency formatting (0dp above $1000, and JPY is always 0dp since it
-// has no minor subunit in everyday use).
+// One-time migration from the old single appCurrency setting.
+if (!defaultCurrency) {
+  const legacy = localStorage.getItem('appCurrency');
+  if (legacy && legacy !== 'sol') {
+    defaultCurrency = legacy;
+    displayMode = displayMode || 'fiat';
+  } else {
+    defaultCurrency = 'usd';
+  }
+  localStorage.setItem('defaultCurrency', defaultCurrency);
+}
+displayMode = displayMode || 'sol';
+
+// Displays a SOL amount as SOL or the configured default currency,
+// depending on the current display mode. Standard 2dp currency formatting
+// (0dp above $1000, and JPY is always 0dp since it has no minor subunit in
+// everyday use).
 function fmtMoney(sol, decimals) {
   if (sol == null) return '—';
-  const price = solPrices[appCurrency];
-  if (appCurrency !== 'sol' && price) {
+  const price = solPrices[defaultCurrency];
+  if (displayMode === 'fiat' && price) {
     const amount = sol * price;
     const sign = amount > 0 ? '+' : amount < 0 ? '-' : '';
     const abs = Math.abs(amount);
-    const dp = appCurrency === 'jpy' ? 0 : abs >= 1000 ? 0 : 2;
-    return `${sign}${CURRENCY_SYMBOLS[appCurrency]}${abs.toFixed(dp)}`;
+    const dp = defaultCurrency === 'jpy' ? 0 : abs >= 1000 ? 0 : 2;
+    return `${sign}${CURRENCY_SYMBOLS[defaultCurrency]}${abs.toFixed(dp)}`;
   }
   return fmtSol(sol, decimals);
 }
@@ -159,8 +177,8 @@ function fmtMoney(sol, decimals) {
 // yet) doesn't read as "the currency setting doesn't work." Returns plain
 // text -- callers wrap it in whatever element fits their layout.
 function currencyPendingHint() {
-  if (appCurrency === 'sol' || solPrices[appCurrency]) return '';
-  return `Showing SOL — set a SOL price for ${appCurrency.toUpperCase()} in Settings to see this in ${appCurrency.toUpperCase()}.`;
+  if (displayMode !== 'fiat' || solPrices[defaultCurrency]) return '';
+  return `Showing SOL — set a SOL price for ${defaultCurrency.toUpperCase()} in Settings to see this in ${defaultCurrency.toUpperCase()}.`;
 }
 
 function fmtPct(n) {
@@ -845,6 +863,7 @@ const accountAvatar = document.getElementById('account-avatar');
 const accountName = document.getElementById('account-name');
 const pfpPreview = document.getElementById('pfp-preview');
 const pfpRemoveBtn = document.getElementById('pfp-remove-btn');
+const onboardingPfpPreview = document.getElementById('onboarding-pfp-preview');
 
 function getInitials(name) {
   const parts = name.trim().split(/\s+/);
@@ -873,6 +892,7 @@ function applyProfile() {
 
   setAvatarVisual(accountAvatar, pfp, fallback);
   setAvatarVisual(pfpPreview, pfp, fallback);
+  setAvatarVisual(onboardingPfpPreview, pfp, fallback);
   pfpRemoveBtn.classList.toggle('hidden', !pfp);
 
   if (name) {
@@ -925,27 +945,61 @@ function resizeImageToDataUrl(file, size = 200) {
   });
 }
 
-const pfpFileInput = document.getElementById('pfp-file-input');
-document.getElementById('pfp-upload-btn').addEventListener('click', () => pfpFileInput.click());
+// Shared by the Settings upload controls and the first-run onboarding
+// modal's upload controls, so there's one upload/resize/store code path.
+function wirePfpUpload(uploadBtnId, fileInputId) {
+  const fileInput = document.getElementById(fileInputId);
+  document.getElementById(uploadBtnId).addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    try {
+      const dataUrl = await resizeImageToDataUrl(file);
+      localStorage.setItem('profilePicture', dataUrl);
+      applyProfile();
+    } catch {
+      // Not worth a whole error UI for a local avatar upload -- just leave
+      // the previous photo (or fallback) in place if the file couldn't be read.
+    }
+    fileInput.value = '';
+  });
+}
 
-pfpFileInput.addEventListener('change', async () => {
-  const file = pfpFileInput.files[0];
-  if (!file) return;
-  try {
-    const dataUrl = await resizeImageToDataUrl(file);
-    localStorage.setItem('profilePicture', dataUrl);
-    applyProfile();
-  } catch {
-    // Not worth a whole error UI for a local avatar upload -- just leave the
-    // previous photo (or fallback) in place if the file couldn't be read.
-  }
-  pfpFileInput.value = '';
-});
+wirePfpUpload('pfp-upload-btn', 'pfp-file-input');
+wirePfpUpload('onboarding-pfp-upload-btn', 'onboarding-pfp-file-input');
 
 pfpRemoveBtn.addEventListener('click', () => {
   localStorage.removeItem('profilePicture');
   applyProfile();
 });
+
+// ---------- First-run onboarding ----------
+// Shown once, the first time the app is opened with no name set yet --
+// covers what "Welcome back, {name}" is for once there IS a name, and
+// gives new users an intentional way to set their name/photo instead of a
+// browser autofill suggestion silently landing in the field.
+const onboardingModal = document.getElementById('onboarding-modal');
+
+function completeOnboarding() {
+  localStorage.setItem('onboardingComplete', '1');
+  onboardingModal.classList.add('hidden');
+}
+
+document.getElementById('onboarding-get-started').addEventListener('click', () => {
+  const name = document.getElementById('onboarding-username').value.trim();
+  if (name) {
+    localStorage.setItem('displayName', name);
+    usernameInput.value = name;
+    applyProfile();
+  }
+  completeOnboarding();
+});
+
+document.getElementById('onboarding-skip').addEventListener('click', completeOnboarding);
+
+if (!localStorage.getItem('onboardingComplete') && !localStorage.getItem('displayName')) {
+  onboardingModal.classList.remove('hidden');
+}
 
 document.getElementById('settings-icon-btn').addEventListener('click', () => switchToView('settings'));
 document.getElementById('account-widget').addEventListener('click', () => switchToView('settings'));
@@ -955,36 +1009,65 @@ const settingsSolPriceInput = document.getElementById('settings-sol-price');
 const settingsSolPriceLabel = document.getElementById('settings-sol-price-label');
 
 function updateCurrencyPriceField() {
-  const isFiat = appCurrency !== 'sol';
-  settingsSolPriceInput.classList.toggle('hidden', !isFiat);
-  if (isFiat) {
-    settingsSolPriceLabel.textContent = `1 SOL in ${appCurrency.toUpperCase()}`;
-    settingsSolPriceInput.placeholder = `e.g. ${CURRENCY_SYMBOLS[appCurrency]}150`;
-    settingsSolPriceInput.value = solPrices[appCurrency] ?? '';
-  }
+  settingsSolPriceLabel.textContent = `1 SOL in ${defaultCurrency.toUpperCase()}`;
+  settingsSolPriceInput.placeholder = `e.g. ${CURRENCY_SYMBOLS[defaultCurrency]}150`;
+  settingsSolPriceInput.value = solPrices[defaultCurrency] ?? '';
 }
 
-settingsCurrencySelect.value = appCurrency;
+// Every SOL/{currency} toggle on the app (Total P&L, Calendar) shares this
+// label + click behavior, so they're all wired from one place and always
+// agree on what "the fiat option" currently means.
+function refreshCurrencyToggleLabels() {
+  document.querySelectorAll('.fiat-toggle-label').forEach((el) => {
+    el.textContent = defaultCurrency.toUpperCase();
+  });
+  document.querySelectorAll('.value-toggle[data-toggle-group="display-mode"] .toggle-btn').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.type === displayMode);
+  });
+}
+
+function setDisplayMode(mode) {
+  displayMode = mode;
+  localStorage.setItem('displayMode', mode);
+  refreshCurrencyToggleLabels();
+  window.dispatchEvent(new Event('currencychange'));
+}
+
+function wireDisplayModeToggle(root) {
+  root.querySelectorAll('.value-toggle[data-toggle-group="display-mode"] .toggle-btn').forEach((btn) => {
+    btn.addEventListener('click', () => setDisplayMode(btn.dataset.type));
+  });
+}
+
+// Both the Total P&L and Calendar SOL/{currency} toggles exist in the
+// static page markup (not modal-injected), so wiring them once here covers
+// both -- clicking either stays in sync since displayMode is global.
+wireDisplayModeToggle(document);
+refreshCurrencyToggleLabels();
+
+settingsCurrencySelect.value = defaultCurrency;
 updateCurrencyPriceField();
+refreshCurrencyToggleLabels();
 
 settingsCurrencySelect.addEventListener('change', () => {
-  appCurrency = settingsCurrencySelect.value;
-  localStorage.setItem('appCurrency', appCurrency);
+  defaultCurrency = settingsCurrencySelect.value;
+  localStorage.setItem('defaultCurrency', defaultCurrency);
   updateCurrencyPriceField();
+  refreshCurrencyToggleLabels();
   window.dispatchEvent(new Event('currencychange'));
 });
 
 settingsSolPriceInput.addEventListener('input', () => {
   const val = Number(settingsSolPriceInput.value);
-  if (val > 0) solPrices[appCurrency] = val;
-  else delete solPrices[appCurrency];
+  if (val > 0) solPrices[defaultCurrency] = val;
+  else delete solPrices[defaultCurrency];
   localStorage.setItem('solPrices', JSON.stringify(solPrices));
   window.dispatchEvent(new Event('currencychange'));
 });
 
 // Re-render whatever's currently on screen when the currency setting
-// changes, so switching in Settings updates a view you already had open
-// instead of only taking effect the next time you navigate to it.
+// changes, so switching it updates a view you already had open instead of
+// only taking effect the next time you navigate to it.
 window.addEventListener('currencychange', () => {
   if (document.getElementById('view-totals').classList.contains('active')) loadTotals();
   if (document.getElementById('view-list').classList.contains('active')) loadTradeList();

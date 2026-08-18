@@ -632,12 +632,63 @@ h3 {
 .calendar-nav {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.25rem;
+  gap: 0.6rem;
 }
 
-.calendar-nav .value-toggle { margin-bottom: 0; margin-left: auto; }
+.cal-month-label-inline {
+  font-size: 1rem;
+  color: var(--text-dim);
+  font-weight: 400;
+  min-width: 9rem;
+  text-align: center;
+}
+
+.icon-btn-sm {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.icon-btn-sm:hover { border-color: var(--accent); background: var(--panel-alt); }
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.toggle-row .value-toggle { margin-bottom: 0; }
+
+.centered-toggle {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+
+.tour-list {
+  margin: 0 0 1.25rem;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  font-size: 0.88rem;
+  color: var(--text-dim);
+}
+
+.tour-list b { color: var(--text); }
 
 #view-list h3 {
   margin-top: 1.5rem;
@@ -665,12 +716,6 @@ h3 {
   margin: 0.5rem 0 1rem;
   text-align: center;
   transition: color 200ms ease;
-}
-
-.cal-month-label-inline {
-  font-size: 1rem;
-  color: var(--text-dim);
-  font-weight: 400;
 }
 
 .centered-hint {

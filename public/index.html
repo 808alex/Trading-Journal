@@ -222,12 +222,18 @@
         <h2>Total P&amp;L</h2>
         <button id="open-calendar-btn" class="btn-secondary">&#128197; Calendar</button>
       </div>
-      <div class="value-toggle" data-toggle-group="totals-period">
-        <button type="button" class="toggle-btn active" data-type="all">All</button>
-        <button type="button" class="toggle-btn" data-type="D">D</button>
-        <button type="button" class="toggle-btn" data-type="W">W</button>
-        <button type="button" class="toggle-btn" data-type="M">M</button>
-        <button type="button" class="toggle-btn" data-type="Y">Y</button>
+      <div class="toggle-row">
+        <div class="value-toggle" data-toggle-group="totals-period">
+          <button type="button" class="toggle-btn active" data-type="all">All</button>
+          <button type="button" class="toggle-btn" data-type="D">D</button>
+          <button type="button" class="toggle-btn" data-type="W">W</button>
+          <button type="button" class="toggle-btn" data-type="M">M</button>
+          <button type="button" class="toggle-btn" data-type="Y">Y</button>
+        </div>
+        <div class="value-toggle" data-toggle-group="display-mode">
+          <button type="button" class="toggle-btn" data-type="sol">SOL</button>
+          <button type="button" class="toggle-btn" data-type="fiat"><span class="fiat-toggle-label">USD</span></button>
+        </div>
       </div>
       <p id="totals-error" class="status-msg error hidden"></p>
       <div id="totals-summary" class="totals-summary"></div>
@@ -304,12 +310,11 @@
       </div>
 
       <h3>Currency</h3>
-      <p class="hint">Applies everywhere P&amp;L is shown &mdash; the underlying data always stays in SOL, this is just how it's displayed.</p>
+      <p class="hint">SOL is always available everywhere P&amp;L is shown. Pick a default fiat currency here and its rate, then use the SOL/{currency} switch on Total P&amp;L and the Calendar to flip between the two.</p>
       <div class="field-row">
         <div class="field">
-          <label for="settings-currency">Display currency</label>
+          <label for="settings-currency">Default fiat currency</label>
           <select id="settings-currency">
-            <option value="sol">SOL (native)</option>
             <option value="usd">USD ($)</option>
             <option value="gbp">GBP (£)</option>
             <option value="eur">EUR (€)</option>
@@ -318,7 +323,7 @@
         </div>
         <div class="field">
           <label for="settings-sol-price" id="settings-sol-price-label">SOL price</label>
-          <input type="number" step="any" id="settings-sol-price" class="sol-price-input hidden">
+          <input type="number" step="any" id="settings-sol-price" class="sol-price-input">
         </div>
       </div>
 
@@ -347,16 +352,56 @@
       <button id="calendar-modal-close" class="modal-close-btn">&times;</button>
       <div class="totals-header">
         <h2>P&amp;L Calendar</h2>
-        <span id="cal-month-label" class="cal-month-label-inline"></span>
+        <div class="calendar-nav">
+          <button id="cal-prev" class="icon-btn-sm">&larr;</button>
+          <span id="cal-month-label" class="cal-month-label-inline"></span>
+          <button id="cal-next" class="icon-btn-sm">&rarr;</button>
+        </div>
       </div>
-      <div class="calendar-nav">
-        <button id="cal-prev" class="btn-secondary">&larr; Prev</button>
-        <button id="cal-next" class="btn-secondary">Next &rarr;</button>
+      <div class="value-toggle centered-toggle" data-toggle-group="display-mode">
+        <button type="button" class="toggle-btn" data-type="sol">SOL</button>
+        <button type="button" class="toggle-btn" data-type="fiat"><span class="fiat-toggle-label">USD</span></button>
       </div>
       <p id="cal-month-total" class="cal-month-total"></p>
       <p id="cal-currency-hint" class="hint centered-hint"></p>
       <p id="calendar-error" class="status-msg error hidden"></p>
       <div id="calendar-grid" class="calendar-grid"></div>
+    </div>
+  </div>
+
+  <!-- FIRST-RUN ONBOARDING MODAL -->
+  <div id="onboarding-modal" class="modal hidden">
+    <div class="modal-content modal-wide">
+      <h2>Welcome to your Trading Journal</h2>
+      <p class="hint">This is your own local, private space to log trades and learn from them. Let's get you set up &mdash; both fields below are optional and you can always change them later in Settings.</p>
+
+      <div class="pfp-upload">
+        <div id="onboarding-pfp-preview" class="pfp-preview">?</div>
+        <div class="pfp-upload-actions">
+          <button type="button" id="onboarding-pfp-upload-btn" class="btn-secondary">Upload Photo</button>
+          <input type="file" id="onboarding-pfp-file-input" accept="image/*" class="hidden">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="onboarding-username">What should we call you?</label>
+        <input type="text" id="onboarding-username" placeholder="Your name">
+      </div>
+
+      <h3>A quick tour</h3>
+      <ul class="tour-list">
+        <li><b>Dashboard</b> &mdash; your overview: recurring patterns in your trading, performance breakdowns, and quick links to everything else.</li>
+        <li><b>Log Trade</b> &mdash; log a new trade. Fill in the exit and reflection fields too if it's already done, no need to come back later.</li>
+        <li><b>Trade List</b> &mdash; browse, search, sort, and filter your open and closed positions.</li>
+        <li><b>Total P&amp;L</b> &mdash; running totals by day, week, month, or year, plus a full P&amp;L calendar.</li>
+        <li><b>Journal</b> &mdash; a daily journal separate from individual trades, for market narrative, challenges, and lessons.</li>
+        <li><b>Settings</b> &mdash; your name, photo, currency, and theme, all in one place.</li>
+      </ul>
+
+      <div class="form-actions">
+        <button type="button" id="onboarding-get-started" class="btn-primary">Get Started</button>
+        <button type="button" id="onboarding-skip" class="btn-secondary">Skip for now</button>
+      </div>
     </div>
   </div>
 
