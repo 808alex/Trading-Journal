@@ -287,13 +287,26 @@ h3 {
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex-wrap: wrap;
   margin-bottom: 0.25rem;
 }
 
+.calendar-nav .value-toggle { margin-bottom: 0; margin-left: auto; }
+
+#view-list h3 {
+  margin-top: 1.5rem;
+}
+
+.hidden { display: none !important; }
+
 .cal-month-total {
-  color: var(--text-dim);
-  font-size: 0.9rem;
-  margin-top: 0;
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin: 0.5rem 0 1rem;
+}
+
+.sol-price-input {
+  width: 130px;
 }
 
 .calendar-grid {
@@ -325,6 +338,8 @@ h3 {
 .cal-cell.no-trades { background: var(--panel); color: var(--text-dim); }
 .cal-cell.pnl-pos { background: rgba(53, 196, 106, 0.18); border-color: var(--green); }
 .cal-cell.pnl-neg { background: rgba(229, 72, 77, 0.18); border-color: var(--red); }
+.cal-cell.pnl-gold { background: rgba(224, 176, 63, 0.28); border-color: var(--yellow); }
+.cal-cell.pnl-gold .day-pnl { color: var(--yellow); }
 
 .cal-cell .day-num {
   position: absolute;

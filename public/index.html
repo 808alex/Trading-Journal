@@ -132,6 +132,7 @@
     <section id="view-list" class="view">
       <h2>Trades</h2>
       <div class="filters">
+        <label>Search <input type="text" id="filter-search" placeholder="Coin name or address"></label>
         <label>From <input type="date" id="filter-from"></label>
         <label>To <input type="date" id="filter-to"></label>
         <label>Grade
@@ -143,10 +144,22 @@
             <option value="D">D</option>
           </select>
         </label>
+        <label>Sort (closed)
+          <select id="filter-sort">
+            <option value="date">Newest first</option>
+            <option value="profit">Biggest profit</option>
+            <option value="loss">Biggest loss</option>
+          </select>
+        </label>
         <button id="apply-filters" class="btn-secondary">Apply</button>
         <button id="clear-filters" class="btn-secondary">Clear</button>
       </div>
-      <div id="trade-list" class="trade-list"></div>
+
+      <h3>Open Positions</h3>
+      <div id="open-trade-list" class="trade-list"></div>
+
+      <h3>Closed Positions</h3>
+      <div id="closed-trade-list" class="trade-list"></div>
     </section>
 
     <!-- TOTALS VIEW -->
@@ -162,9 +175,15 @@
         <button id="cal-prev" class="btn-secondary">&larr; Prev</button>
         <span id="cal-month-label"></span>
         <button id="cal-next" class="btn-secondary">Next &rarr;</button>
+        <div class="value-toggle" data-toggle-group="cal-currency">
+          <button type="button" class="toggle-btn active" data-type="sol">SOL</button>
+          <button type="button" class="toggle-btn" data-type="usd">USD</button>
+        </div>
+        <input type="number" step="any" id="sol-price-usd" placeholder="SOL price in $" class="sol-price-input hidden">
       </div>
       <p id="cal-month-total" class="cal-month-total"></p>
       <div id="calendar-grid" class="calendar-grid"></div>
+      <p class="hint">Gold day = a profit at least 5&times; your typical (median) profitable day, once there's enough history to tell.</p>
     </section>
   </main>
 

@@ -32,9 +32,9 @@ function validateCloseFields(fields) {
   return null;
 }
 
-// GET /api/trades?from=YYYY-MM-DD&to=YYYY-MM-DD&grade=A
+// GET /api/trades?from=YYYY-MM-DD&to=YYYY-MM-DD&grade=A&q=search
 router.get('/', (req, res) => {
-  const { from, to, grade } = req.query;
+  const { from, to, grade, q } = req.query;
   const clauses = [];
   const params = [];
 
@@ -49,6 +49,10 @@ router.get('/', (req, res) => {
   if (grade) {
     clauses.push('grade = ?');
     params.push(grade);
+  }
+  if (q) {
+    clauses.push('(coin_name LIKE ? OR contract_address LIKE ?)');
+    params.push(`%${q}%`, `%${q}%`);
   }
 
   const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';

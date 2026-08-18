@@ -157,53 +157,79 @@ addForm.addEventListener('submit', async (e) => {
 });
 
 // ---------- Trade List ----------
-const tradeListEl = document.getElementById('trade-list');
+const openTradeListEl = document.getElementById('open-trade-list');
+const closedTradeListEl = document.getElementById('closed-trade-list');
+
+function renderTradeCard(t) {
+  const card = document.createElement('div');
+  card.className = 'trade-card';
+  const date = (t.closed_at || t.created_at).slice(0, 10);
+  card.innerHTML = `
+    <div class="trade-card-top">
+      <span class="coin">${escapeHtml(t.coin_name)}
+        <span class="badge status-${t.status}">${t.status}</span>
+        ${t.grade ? `<span class="badge grade-${t.grade}">${t.grade}</span>` : ''}
+      </span>
+      <span class="${pnlClass(t.pnl_amount)}">${fmtSol(t.pnl_amount)} (${fmtPct(t.pnl_percent)})</span>
+    </div>
+    <div class="trade-card-meta">${escapeHtml(t.contract_address)}</div>
+    <div class="trade-card-meta">${date} · ${t.percent_risked}% risked · ${EMOTIONAL_LABELS[t.emotional_state] || t.emotional_state}</div>
+  `;
+  card.addEventListener('click', () => openTradeModal(t.id));
+  return card;
+}
 
 async function loadTradeList() {
+  const q = document.getElementById('filter-search').value.trim();
   const from = document.getElementById('filter-from').value;
   const to = document.getElementById('filter-to').value;
   const grade = document.getElementById('filter-grade').value;
+  const sort = document.getElementById('filter-sort').value;
 
   const params = new URLSearchParams();
+  if (q) params.set('q', q);
   if (from) params.set('from', from);
   if (to) params.set('to', to);
   if (grade) params.set('grade', grade);
 
   const trades = await api(`/api/trades?${params.toString()}`);
-  tradeListEl.innerHTML = '';
+  const open = trades.filter((t) => t.status === 'open');
+  const closed = trades.filter((t) => t.status === 'closed');
 
-  if (trades.length === 0) {
-    tradeListEl.innerHTML = '<p class="hint">No trades match these filters.</p>';
-    return;
+  if (sort === 'profit') closed.sort((a, b) => (b.pnl_amount ?? -Infinity) - (a.pnl_amount ?? -Infinity));
+  else if (sort === 'loss') closed.sort((a, b) => (a.pnl_amount ?? Infinity) - (b.pnl_amount ?? Infinity));
+
+  openTradeListEl.innerHTML = '';
+  if (open.length === 0) {
+    openTradeListEl.innerHTML = '<p class="hint">No open positions.</p>';
+  } else {
+    open.forEach((t) => openTradeListEl.appendChild(renderTradeCard(t)));
   }
 
-  trades.forEach((t) => {
-    const card = document.createElement('div');
-    card.className = 'trade-card';
-    const date = (t.closed_at || t.created_at).slice(0, 10);
-    card.innerHTML = `
-      <div class="trade-card-top">
-        <span class="coin">${escapeHtml(t.coin_name)}
-          <span class="badge status-${t.status}">${t.status}</span>
-          ${t.grade ? `<span class="badge grade-${t.grade}">${t.grade}</span>` : ''}
-        </span>
-        <span class="${pnlClass(t.pnl_amount)}">${fmtSol(t.pnl_amount)} (${fmtPct(t.pnl_percent)})</span>
-      </div>
-      <div class="trade-card-meta">${escapeHtml(t.contract_address)}</div>
-      <div class="trade-card-meta">${date} · ${t.percent_risked}% risked · ${EMOTIONAL_LABELS[t.emotional_state] || t.emotional_state}</div>
-    `;
-    card.addEventListener('click', () => openTradeModal(t.id));
-    tradeListEl.appendChild(card);
-  });
+  closedTradeListEl.innerHTML = '';
+  if (closed.length === 0) {
+    closedTradeListEl.innerHTML = '<p class="hint">No closed trades match these filters.</p>';
+  } else {
+    closed.forEach((t) => closedTradeListEl.appendChild(renderTradeCard(t)));
+  }
 }
 
 document.getElementById('apply-filters').addEventListener('click', loadTradeList);
 document.getElementById('clear-filters').addEventListener('click', () => {
+  document.getElementById('filter-search').value = '';
   document.getElementById('filter-from').value = '';
   document.getElementById('filter-to').value = '';
   document.getElementById('filter-grade').value = '';
+  document.getElementById('filter-sort').value = 'date';
   loadTradeList();
 });
+
+let searchDebounce;
+document.getElementById('filter-search').addEventListener('input', () => {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(loadTradeList, 300);
+});
+document.getElementById('filter-sort').addEventListener('change', loadTradeList);
 
 // ---------- Trade detail / close modal ----------
 const modal = document.getElementById('trade-modal');
@@ -365,6 +391,8 @@ async function loadTotals() {
 // ---------- Calendar ----------
 let calCursor = new Date();
 calCursor.setDate(1);
+let calCurrency = 'sol';
+let solPriceUsd = Number(localStorage.getItem('solPriceUsd')) || null;
 
 document.getElementById('cal-prev').addEventListener('click', () => {
   calCursor.setMonth(calCursor.getMonth() - 1);
@@ -375,17 +403,61 @@ document.getElementById('cal-next').addEventListener('click', () => {
   loadCalendar();
 });
 
+const solPriceInput = document.getElementById('sol-price-usd');
+if (solPriceUsd) solPriceInput.value = solPriceUsd;
+
+document.querySelectorAll('.value-toggle[data-toggle-group="cal-currency"] .toggle-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    calCurrency = btn.dataset.type;
+    solPriceInput.classList.toggle('hidden', calCurrency !== 'usd');
+    loadCalendar();
+  });
+});
+
+solPriceInput.addEventListener('input', () => {
+  const val = Number(solPriceInput.value);
+  solPriceUsd = val > 0 ? val : null;
+  if (solPriceUsd) localStorage.setItem('solPriceUsd', solPriceUsd);
+  loadCalendar();
+});
+
+// Displays a SOL amount in whichever currency is currently toggled.
+// USD always uses standard 2dp currency formatting (0dp above $1000),
+// independent of the SOL decimal precision requested.
+function fmtCalAmount(sol, decimals) {
+  if (calCurrency === 'usd' && solPriceUsd) {
+    const usd = sol * solPriceUsd;
+    const sign = usd > 0 ? '+' : usd < 0 ? '-' : '';
+    const abs = Math.abs(usd);
+    return `${sign}$${abs >= 1000 ? abs.toFixed(0) : abs.toFixed(2)}`;
+  }
+  return fmtSol(sol, decimals);
+}
+
+// "Gold day" = an outlier-good profit day. Using the median of only the
+// profitable days (not all days) as the baseline keeps bad days from
+// skewing it down — 10 bad days followed by 2 good ones shouldn't make an
+// ordinary good day look like a huge multiple. Requires at least 3
+// profitable days on record before calling anything an outlier, so one or
+// two early wins don't trivially count as "5x everything before them."
+function computeGoldThreshold(allDayTotals) {
+  const profitDays = allDayTotals.filter((v) => v > 0);
+  if (profitDays.length < 3) return null;
+  const sorted = [...profitDays].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const median = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  return median * 5;
+}
+
 async function loadCalendar() {
   const year = calCursor.getFullYear();
   const month = calCursor.getMonth(); // 0-indexed
 
   document.getElementById('cal-month-label').textContent = calCursor.toLocaleString('default', { month: 'long', year: 'numeric' });
 
-  const from = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-  const lastDay = new Date(year, month + 1, 0).getDate();
-  const to = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
-
-  const trades = await api(`/api/trades?from=${from}&to=${to}`);
+  // Fetch full history (not just this month) so the gold-day baseline reflects
+  // your overall track record, not just whatever happens to be visible.
+  const trades = await api('/api/trades');
   const closed = trades.filter((t) => t.status === 'closed');
 
   const byDay = {};
@@ -394,9 +466,16 @@ async function loadCalendar() {
     byDay[day] = (byDay[day] || 0) + (t.pnl_amount || 0);
   });
 
-  const monthTotal = Object.values(byDay).reduce((a, b) => a + b, 0);
+  const goldThreshold = computeGoldThreshold(Object.values(byDay));
+
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}-`;
+  const monthTotal = Object.entries(byDay)
+    .filter(([day]) => day.startsWith(monthPrefix))
+    .reduce((sum, [, v]) => sum + v, 0);
+
   const monthTotalEl = document.getElementById('cal-month-total');
-  monthTotalEl.textContent = `Month total: ${fmtSol(monthTotal)}`;
+  monthTotalEl.textContent = `Month total: ${fmtCalAmount(monthTotal, 3)}`;
   monthTotalEl.className = `cal-month-total ${pnlClass(monthTotal)}`;
 
   const grid = document.getElementById('calendar-grid');
@@ -417,12 +496,13 @@ async function loadCalendar() {
   }
 
   for (let day = 1; day <= lastDay; day++) {
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dateStr = `${monthPrefix}${String(day).padStart(2, '0')}`;
     const pnl = byDay[dateStr];
+    const isGold = pnl != null && goldThreshold != null && pnl > 0 && pnl >= goldThreshold;
     const cell = document.createElement('div');
-    cell.className = `cal-cell ${pnl == null ? 'no-trades' : pnlClass(pnl)}`;
-    cell.title = pnl != null ? fmtSol(pnl) : '';
-    cell.innerHTML = `<span class="day-num">${day}</span>${pnl != null ? `<span class="day-pnl">${fmtSol(pnl, 2)}</span>` : ''}`;
+    cell.className = `cal-cell ${pnl == null ? 'no-trades' : isGold ? 'pnl-gold' : pnlClass(pnl)}`;
+    cell.title = pnl != null ? `${fmtSol(pnl)}${isGold ? ' — gold day' : ''}` : '';
+    cell.innerHTML = `<span class="day-num">${day}</span>${pnl != null ? `<span class="day-pnl">${fmtCalAmount(pnl, 2)}</span>` : ''}`;
     grid.appendChild(cell);
   }
 }
