@@ -810,15 +810,26 @@ h3 {
 
 .modal-close-btn {
   position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  background: none;
-  border: none;
+  top: 0.6rem;
+  right: 0.6rem;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 50%;
   color: var(--text-dim);
-  font-size: 1.3rem;
+  font-size: 1.5rem;
+  line-height: 1;
   cursor: pointer;
-  transition: color 150ms ease, transform 150ms ease;
+  transition: color 150ms ease, transform 150ms ease, border-color 150ms ease;
 }
+
+/* The calendar modal's month-nav cluster sits in the same top-right corner
+   as the close button -- give it room so "Next" and "x" aren't crowded. */
+.modal-wide .totals-header { padding-right: 2.75rem; }
 
 .modal-close-btn:hover { color: var(--red); transform: rotate(90deg); }
 
@@ -965,6 +976,104 @@ h3 {
 
 .theme-swatch:hover { transform: translateY(-1px); }
 .theme-swatch.active { border-color: var(--accent); background: var(--panel-alt); }
+
+/* ---------- Guided tour ---------- */
+.tour-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 5, 12, 0.72);
+  z-index: 200;
+  animation: fadeInUp 200ms ease;
+}
+
+.tour-backdrop.hidden { display: none; }
+
+.tour-callout {
+  position: fixed;
+  z-index: 202;
+  width: 260px;
+  background: var(--panel);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  padding: 1rem;
+  box-shadow: 0 16px 48px -12px rgba(0, 0, 0, 0.65);
+  animation: fadeInUp 200ms ease;
+}
+
+.tour-callout.hidden { display: none; }
+.tour-callout p { margin: 0; font-size: 0.9rem; }
+.tour-callout-actions { display: flex; gap: 0.5rem; margin-top: 0.85rem; }
+#tour-step-indicator { margin: 0.6rem 0 0; font-size: 0.75rem; }
+
+/* ---------- Help button + panel ---------- */
+.help-btn {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: white;
+  border: none;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  z-index: 10;
+  box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+  transition: transform 150ms ease;
+}
+
+.help-btn:hover { transform: translateY(-2px) scale(1.05); }
+
+.help-panel {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 5.25rem;
+  width: 300px;
+  max-height: 65vh;
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem;
+  z-index: 11;
+  box-shadow: 0 16px 48px -12px rgba(0, 0, 0, 0.65);
+  animation: fadeInUp 200ms ease;
+}
+
+.help-panel.hidden { display: none; }
+.help-panel h3 { margin: 0 0 0.75rem; }
+.help-panel h4 { font-size: 0.85rem; color: var(--text-dim); margin: 1rem 0 0.5rem; }
+
+.help-panel-close-btn {
+  position: static;
+  float: right;
+  width: 26px;
+  height: 26px;
+  font-size: 1.1rem;
+}
+
+.help-panel details {
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.5rem;
+}
+
+.help-panel summary {
+  cursor: pointer;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.help-panel details p {
+  color: var(--text-dim);
+  margin: 0.5rem 0 0;
+  line-height: 1.4;
+}
+
+.help-panel a.hint { display: inline-block; margin-top: 0.25rem; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

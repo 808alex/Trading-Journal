@@ -41,6 +41,50 @@
     <span id="account-name">Guest</span>
   </div>
 
+  <!-- GUIDED TOUR -->
+  <div id="tour-backdrop" class="tour-backdrop hidden"></div>
+  <div id="tour-callout" class="tour-callout hidden">
+    <p id="tour-callout-text"></p>
+    <div class="tour-callout-actions">
+      <button type="button" id="tour-skip" class="btn-secondary">Skip</button>
+      <button type="button" id="tour-next" class="btn-primary">Next</button>
+    </div>
+    <p id="tour-step-indicator" class="hint"></p>
+  </div>
+
+  <!-- HELP -->
+  <button id="help-btn" class="help-btn" aria-label="Help" title="Help">?</button>
+  <div id="help-panel" class="help-panel hidden">
+    <button id="help-panel-close" class="modal-close-btn help-panel-close-btn">&times;</button>
+    <h3>Help</h3>
+    <button type="button" id="replay-tour-btn" class="btn-secondary">&#8635; Replay Tutorial</button>
+
+    <h4>FAQ</h4>
+    <details>
+      <summary>Where is my data stored?</summary>
+      <p>Locally, in a SQLite file on this computer. Nothing is sent anywhere else.</p>
+    </details>
+    <details>
+      <summary>How do I close a trade I logged earlier?</summary>
+      <p>Trade List &rarr; Open Positions &rarr; click the trade &rarr; fill in the exit details &rarr; Close Trade.</p>
+    </details>
+    <details>
+      <summary>How do I see P&amp;L in a different currency?</summary>
+      <p>Set a default currency and rate in Settings, then use the SOL/{currency} switch on Total P&amp;L or the Calendar.</p>
+    </details>
+    <details>
+      <summary>What do the trade grades mean?</summary>
+      <p>They grade your process, not your profit &mdash; A means you followed your thesis and plan regardless of outcome, D means a fully random or FOMO entry. The full breakdown shows up whenever you're grading a trade.</p>
+    </details>
+    <details>
+      <summary>Is my data backed up anywhere?</summary>
+      <p>Not automatically &mdash; it's a local file (in this project's <code>data/</code> folder) you'd need to back up yourself.</p>
+    </details>
+
+    <h4>Still stuck?</h4>
+    <a id="help-email-link" href="#" class="hint">Email yourself a note about it</a>
+  </div>
+
   <main>
     <!-- DASHBOARD VIEW -->
     <section id="view-dashboard" class="view active">
@@ -335,6 +379,10 @@
         <button type="button" class="theme-swatch" data-theme="ocean" style="--sw1:#3b82f6;--sw2:#06b6d4">Ocean</button>
         <button type="button" class="theme-swatch" data-theme="pink" style="--sw1:#ec4899;--sw2:#a78bfa">Pink</button>
       </div>
+
+      <h3>Account</h3>
+      <p class="hint">This app runs locally with a single profile, not real online accounts &mdash; there's no sign-up or password. "Log out" clears your name and photo from this browser and shows the welcome screen again next time; your trades and journal entries are untouched.</p>
+      <button type="button" id="settings-logout-btn" class="btn-danger">Log Out</button>
     </section>
   </main>
 

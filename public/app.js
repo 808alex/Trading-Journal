@@ -789,7 +789,7 @@ async function loadJournalList() {
       <div class="trade-card-meta">${escapeHtml(preview.slice(0, 140))}${preview.length > 140 ? '…' : ''}</div>
       <button type="button" class="btn-danger journal-card-delete">Delete</button>
     `;
-    card.addEventListener('click', () => loadJournalEntryIntoForm(e.entry_date));
+    card.addEventListener('click', () => openJournalViewModal(e));
     card.querySelector('.journal-card-star').addEventListener('click', (ev) => {
       ev.stopPropagation();
       toggleJournalStarFromList(e);
@@ -799,6 +799,45 @@ async function loadJournalList() {
       deleteJournalEntry(e.entry_date);
     });
     journalListEl.appendChild(card);
+  });
+}
+
+// Read-only detail view -- clicking a journal card shows this instead of
+// dropping straight into the edit form. Reuses the same generic modal
+// shell as the trade-detail modal (#trade-modal/#modal-body); Edit hands
+// off to the actual form for changes.
+function journalField(label, value) {
+  if (!value) return '';
+  return `<div class="field"><label>${label}</label><p>${escapeHtml(value)}</p></div>`;
+}
+
+function openJournalViewModal(entry) {
+  const heading = entry.title || entry.entry_date;
+  const hasNotes = entry.narrative || entry.volume || entry.challenges || entry.lessons;
+
+  modalBody.innerHTML = `
+    <h2>${escapeHtml(heading)}</h2>
+    <p class="hint">${entry.entry_date}${entry.starred ? ' &middot; &#9733; Starred' : ''}</p>
+    ${journalField('Market narrative / meta trends', entry.narrative)}
+    ${journalField('Volume / activity', entry.volume)}
+    ${journalField('Challenges faced', entry.challenges)}
+    ${journalField('Lessons of the day', entry.lessons)}
+    ${hasNotes ? '' : '<p class="hint">No notes on this entry.</p>'}
+    <div class="form-actions">
+      <button type="button" id="jv-edit" class="btn-primary">Edit</button>
+      <button type="button" id="jv-delete" class="btn-danger">Delete</button>
+    </div>
+  `;
+
+  modal.classList.remove('hidden');
+
+  document.getElementById('jv-edit').addEventListener('click', () => {
+    modal.classList.add('hidden');
+    loadJournalEntryIntoForm(entry.entry_date);
+  });
+  document.getElementById('jv-delete').addEventListener('click', () => {
+    modal.classList.add('hidden');
+    deleteJournalEntry(entry.entry_date);
   });
 }
 
@@ -1001,8 +1040,133 @@ if (!localStorage.getItem('onboardingComplete') && !localStorage.getItem('displa
   onboardingModal.classList.remove('hidden');
 }
 
+// "Log out" here just means clearing the local profile -- there's no real
+// account system (no server, no user database, no auth) to sign out of.
+// Real Google/Apple/email sign-in would need a hosted backend, registered
+// OAuth apps with each provider, and a user database -- a different kind
+// of project than a local single-profile journal.
+document.getElementById('settings-logout-btn').addEventListener('click', () => {
+  if (!confirm("Log out? This clears your name and photo (not your trades or journal entries) and shows the welcome screen again.")) return;
+  localStorage.removeItem('displayName');
+  localStorage.removeItem('profilePicture');
+  localStorage.removeItem('onboardingComplete');
+  usernameInput.value = '';
+  applyProfile();
+  switchToView('dashboard');
+  document.getElementById('onboarding-username').value = '';
+  onboardingModal.classList.remove('hidden');
+});
+
 document.getElementById('settings-icon-btn').addEventListener('click', () => switchToView('settings'));
 document.getElementById('account-widget').addEventListener('click', () => switchToView('settings'));
+
+// ---------- Guided tour ----------
+// A lightweight spotlight tour over real elements on the Dashboard, rather
+// than a separate slideshow -- each step highlights the actual button
+// (boosting its z-index above the dimmed backdrop, no clip-path/SVG mask
+// needed) and points a callout at it.
+const TOUR_STEPS = [
+  { selector: '#hamburger-btn', text: 'Tap here to open the menu and jump to any section of the app.' },
+  { selector: '.quick-links', text: "Quick shortcuts to the places you'll use most, right from the Dashboard." },
+  { selector: '#settings-icon-btn', text: 'Your name, photo, default currency, and theme all live in Settings.' },
+  { selector: '#account-widget', text: "That's you. Click here any time to jump to Settings." },
+  { selector: '#help-btn', text: "Stuck later? Come back here any time to replay this tour or check the FAQ." },
+];
+
+const tourBackdrop = document.getElementById('tour-backdrop');
+const tourCallout = document.getElementById('tour-callout');
+let tourStepIndex = 0;
+let tourHighlightedEl = null;
+
+function clearTourHighlight() {
+  if (!tourHighlightedEl) return;
+  if (tourHighlightedEl.dataset.tourWasStatic) {
+    tourHighlightedEl.style.position = '';
+    delete tourHighlightedEl.dataset.tourWasStatic;
+  }
+  tourHighlightedEl.style.zIndex = '';
+  tourHighlightedEl.style.boxShadow = '';
+  tourHighlightedEl = null;
+}
+
+function positionTourCallout(target) {
+  const rect = target.getBoundingClientRect();
+  const calloutRect = tourCallout.getBoundingClientRect();
+  let top = rect.bottom + 14;
+  if (top + calloutRect.height > window.innerHeight - 16) {
+    top = Math.max(16, rect.top - calloutRect.height - 14);
+  }
+  let left = rect.left;
+  if (left + calloutRect.width > window.innerWidth - 16) left = window.innerWidth - calloutRect.width - 16;
+  if (left < 16) left = 16;
+  tourCallout.style.top = `${top}px`;
+  tourCallout.style.left = `${left}px`;
+}
+
+function showTourStep(i) {
+  clearTourHighlight();
+  if (i >= TOUR_STEPS.length) return endTour();
+
+  const step = TOUR_STEPS[i];
+  const target = document.querySelector(step.selector);
+  if (!target) return showTourStep(i + 1); // skip a step whose element isn't on screen
+
+  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  if (getComputedStyle(target).position === 'static') {
+    target.dataset.tourWasStatic = 'true';
+    target.style.position = 'relative';
+  }
+  target.style.zIndex = '201';
+  target.style.boxShadow = '0 0 0 4px var(--accent), 0 0 24px 6px var(--accent)';
+  tourHighlightedEl = target;
+
+  document.getElementById('tour-callout-text').textContent = step.text;
+  document.getElementById('tour-step-indicator').textContent = `${i + 1} of ${TOUR_STEPS.length}`;
+  document.getElementById('tour-next').textContent = i === TOUR_STEPS.length - 1 ? 'Done' : 'Next';
+
+  tourCallout.classList.add('hidden');
+  setTimeout(() => {
+    tourCallout.classList.remove('hidden');
+    positionTourCallout(target);
+  }, 350); // let scrollIntoView settle before measuring position
+}
+
+function startTour() {
+  closeDrawer();
+  document.getElementById('help-panel').classList.add('hidden');
+  switchToView('dashboard');
+  tourStepIndex = 0;
+  tourBackdrop.classList.remove('hidden');
+  setTimeout(() => showTourStep(0), 100);
+}
+
+function endTour() {
+  clearTourHighlight();
+  tourBackdrop.classList.add('hidden');
+  tourCallout.classList.add('hidden');
+}
+
+document.getElementById('tour-next').addEventListener('click', () => showTourStep(++tourStepIndex));
+document.getElementById('tour-skip').addEventListener('click', endTour);
+tourBackdrop.addEventListener('click', endTour);
+
+// ---------- Help ----------
+const helpPanel = document.getElementById('help-panel');
+
+document.getElementById('help-btn').addEventListener('click', () => helpPanel.classList.toggle('hidden'));
+document.getElementById('help-panel-close').addEventListener('click', () => helpPanel.classList.add('hidden'));
+document.getElementById('replay-tour-btn').addEventListener('click', startTour);
+
+// A local single-user app has no real support inbox to send feedback to --
+// this opens the user's own default mail client with the subject
+// pre-filled, so they can address it to themselves (or wherever) and jot
+// down a bug or an idea while it's fresh. Deliberately no address baked in
+// here -- not something to commit to source even for a personal project.
+document.getElementById('help-email-link').addEventListener('click', (e) => {
+  e.preventDefault();
+  window.location.href = `mailto:?subject=${encodeURIComponent('Trading Journal feedback')}`;
+});
 
 const settingsCurrencySelect = document.getElementById('settings-currency');
 const settingsSolPriceInput = document.getElementById('settings-sol-price');
