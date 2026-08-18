@@ -65,12 +65,15 @@ const views = document.querySelectorAll('.view');
 function switchToView(viewName) {
   tabButtons.forEach((b) => b.classList.toggle('active', b.dataset.view === viewName));
   views.forEach((v) => v.classList.toggle('active', v.id === `view-${viewName}`));
+  document.getElementById('back-btn').classList.toggle('hidden', viewName === 'dashboard');
 
   if (viewName === 'list') loadTradeList();
   if (viewName === 'totals') loadTotals();
   if (viewName === 'journal') loadJournalList();
   if (viewName === 'dashboard') loadDashboard();
 }
+
+document.getElementById('back-btn').addEventListener('click', () => switchToView('dashboard'));
 
 // ---------- Hamburger nav drawer ----------
 const hamburgerBtn = document.getElementById('hamburger-btn');
@@ -127,7 +130,7 @@ function fmtSol(n, decimals = 3) {
 // (SOL/USD and SOL/EUR are different numbers) so switching back and forth
 // doesn't lose what you typed.
 const CURRENCY_SYMBOLS = { usd: '$', gbp: '£', eur: '€', jpy: '¥' };
-let appCurrency = localStorage.getItem('appCurrency') || 'sol';
+let appCurrency = localStorage.getItem('appCurrency') || 'usd';
 let solPrices = {};
 try {
   solPrices = JSON.parse(localStorage.getItem('solPrices') || '{}');
