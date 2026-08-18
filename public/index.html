@@ -151,9 +151,9 @@
             <option value="loss">Biggest loss</option>
           </select>
         </label>
-        <button id="apply-filters" class="btn-secondary">Apply</button>
         <button id="clear-filters" class="btn-secondary">Clear</button>
       </div>
+      <p id="trade-list-error" class="status-msg error hidden"></p>
 
       <h3>Open Positions</h3>
       <div id="open-trade-list" class="trade-list"></div>
@@ -165,6 +165,7 @@
     <!-- TOTALS VIEW -->
     <section id="view-totals" class="view">
       <h2>Total P&amp;L</h2>
+      <p id="totals-error" class="status-msg error hidden"></p>
       <div id="totals-summary" class="totals-summary"></div>
     </section>
 
@@ -182,8 +183,8 @@
         <input type="number" step="any" id="sol-price-usd" placeholder="SOL price in $" class="sol-price-input hidden">
       </div>
       <p id="cal-month-total" class="cal-month-total"></p>
+      <p id="calendar-error" class="status-msg error hidden"></p>
       <div id="calendar-grid" class="calendar-grid"></div>
-      <p class="hint">Gold day = a profit at least 5&times; your typical (median) profitable day, once there's enough history to tell.</p>
     </section>
   </main>
 

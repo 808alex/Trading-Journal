@@ -151,7 +151,9 @@ addForm.addEventListener('submit', async (e) => {
       group.querySelector('.toggle-btn').classList.add('active');
     });
   } catch (err) {
-    addStatus.textContent = err.message;
+    addStatus.textContent = err.message === 'Failed to fetch'
+      ? "Couldn't reach the server. Is it running?"
+      : err.message;
     addStatus.classList.add('error');
   }
 });
@@ -179,6 +181,8 @@ function renderTradeCard(t) {
   return card;
 }
 
+const tradeListErrorEl = document.getElementById('trade-list-error');
+
 async function loadTradeList() {
   const q = document.getElementById('filter-search').value.trim();
   const from = document.getElementById('filter-from').value;
@@ -192,7 +196,16 @@ async function loadTradeList() {
   if (to) params.set('to', to);
   if (grade) params.set('grade', grade);
 
-  const trades = await api(`/api/trades?${params.toString()}`);
+  let trades;
+  try {
+    trades = await api(`/api/trades?${params.toString()}`);
+    tradeListErrorEl.classList.add('hidden');
+  } catch (err) {
+    tradeListErrorEl.textContent = `Couldn't load trades: ${err.message}. Is the server running?`;
+    tradeListErrorEl.classList.remove('hidden');
+    return;
+  }
+
   const open = trades.filter((t) => t.status === 'open');
   const closed = trades.filter((t) => t.status === 'closed');
 
@@ -214,7 +227,10 @@ async function loadTradeList() {
   }
 }
 
-document.getElementById('apply-filters').addEventListener('click', loadTradeList);
+['filter-from', 'filter-to', 'filter-grade', 'filter-sort'].forEach((id) => {
+  document.getElementById(id).addEventListener('change', loadTradeList);
+});
+
 document.getElementById('clear-filters').addEventListener('click', () => {
   document.getElementById('filter-search').value = '';
   document.getElementById('filter-from').value = '';
@@ -229,7 +245,6 @@ document.getElementById('filter-search').addEventListener('input', () => {
   clearTimeout(searchDebounce);
   searchDebounce = setTimeout(loadTradeList, 300);
 });
-document.getElementById('filter-sort').addEventListener('change', loadTradeList);
 
 // ---------- Trade detail / close modal ----------
 const modal = document.getElementById('trade-modal');
@@ -372,7 +387,17 @@ async function openTradeModal(id) {
 
 // ---------- Totals ----------
 async function loadTotals() {
-  const trades = await api('/api/trades');
+  const totalsErrorEl = document.getElementById('totals-error');
+  let trades;
+  try {
+    trades = await api('/api/trades');
+    totalsErrorEl.classList.add('hidden');
+  } catch (err) {
+    totalsErrorEl.textContent = `Couldn't load trades: ${err.message}. Is the server running?`;
+    totalsErrorEl.classList.remove('hidden');
+    document.getElementById('totals-summary').innerHTML = '';
+    return;
+  }
   const closed = trades.filter((t) => t.status === 'closed');
   const totalPnl = closed.reduce((sum, t) => sum + (t.pnl_amount || 0), 0);
   const wins = closed.filter((t) => t.pnl_amount > 0).length;
@@ -455,9 +480,20 @@ async function loadCalendar() {
 
   document.getElementById('cal-month-label').textContent = calCursor.toLocaleString('default', { month: 'long', year: 'numeric' });
 
-  // Fetch full history (not just this month) so the gold-day baseline reflects
-  // your overall track record, not just whatever happens to be visible.
-  const trades = await api('/api/trades');
+  const calendarErrorEl = document.getElementById('calendar-error');
+  let trades;
+  try {
+    // Fetch full history (not just this month) so the gold-day baseline
+    // reflects your overall track record, not just whatever's visible.
+    trades = await api('/api/trades');
+    calendarErrorEl.classList.add('hidden');
+  } catch (err) {
+    calendarErrorEl.textContent = `Couldn't load trades: ${err.message}. Is the server running?`;
+    calendarErrorEl.classList.remove('hidden');
+    document.getElementById('calendar-grid').innerHTML = '';
+    document.getElementById('cal-month-total').textContent = '';
+    return;
+  }
   const closed = trades.filter((t) => t.status === 'closed');
 
   const byDay = {};
