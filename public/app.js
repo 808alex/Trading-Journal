@@ -782,26 +782,44 @@ const usernameInput = document.getElementById('settings-username');
 const dashboardGreeting = document.getElementById('dashboard-greeting');
 const accountAvatar = document.getElementById('account-avatar');
 const accountName = document.getElementById('account-name');
+const pfpPreview = document.getElementById('pfp-preview');
+const pfpRemoveBtn = document.getElementById('pfp-remove-btn');
 
 function getInitials(name) {
   const parts = name.trim().split(/\s+/);
   return parts.length === 1 ? parts[0][0].toUpperCase() : (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
-// Drives both the Dashboard's "Welcome back" line and the bottom-left
-// account widget -- no real accounts, just a personalization touch built
-// from the display name in Settings. No name set yet = a "Guest" avatar
-// that doubles as a nudge toward Settings.
+// Shared by the Settings preview circle and the bottom-left widget avatar --
+// shows the uploaded photo if one exists, otherwise falls back to initials.
+function setAvatarVisual(el, dataUrl, fallbackText) {
+  if (dataUrl) {
+    el.style.backgroundImage = `url(${dataUrl})`;
+    el.textContent = '';
+  } else {
+    el.style.backgroundImage = '';
+    el.textContent = fallbackText;
+  }
+}
+
+// Drives the Dashboard's "Welcome back" line, the bottom-left account
+// widget, and the Settings preview circle -- no real accounts, just a
+// personalization touch built from the display name/photo in Settings.
 function applyProfile() {
   const name = localStorage.getItem('displayName');
+  const pfp = localStorage.getItem('profilePicture');
+  const fallback = name ? getInitials(name) : '?';
+
+  setAvatarVisual(accountAvatar, pfp, fallback);
+  setAvatarVisual(pfpPreview, pfp, fallback);
+  pfpRemoveBtn.classList.toggle('hidden', !pfp);
+
   if (name) {
     dashboardGreeting.textContent = `Welcome back, ${name}.`;
     dashboardGreeting.classList.remove('hidden');
-    accountAvatar.textContent = getInitials(name);
     accountName.textContent = name;
   } else {
     dashboardGreeting.classList.add('hidden');
-    accountAvatar.textContent = '?';
     accountName.textContent = 'Guest';
   }
 }
@@ -809,14 +827,63 @@ function applyProfile() {
 usernameInput.value = localStorage.getItem('displayName') || '';
 applyProfile();
 
-let usernameDebounce;
-usernameInput.addEventListener('input', () => {
-  clearTimeout(usernameDebounce);
-  usernameDebounce = setTimeout(() => {
-    if (usernameInput.value.trim()) localStorage.setItem('displayName', usernameInput.value.trim());
-    else localStorage.removeItem('displayName');
+function saveUsername() {
+  if (usernameInput.value.trim()) localStorage.setItem('displayName', usernameInput.value.trim());
+  else localStorage.removeItem('displayName');
+  applyProfile();
+}
+
+document.getElementById('settings-username-save').addEventListener('click', saveUsername);
+usernameInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') saveUsername();
+});
+
+// Crops to a centered square and downsizes before storing, so a multi-MB
+// photo doesn't get shoved whole into localStorage.
+function resizeImageToDataUrl(file, size = 200) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        const side = Math.min(img.width, img.height);
+        const sx = (img.width - side) / 2;
+        const sy = (img.height - side) / 2;
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = () => reject(new Error('Could not read that image.'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('Could not read that file.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+const pfpFileInput = document.getElementById('pfp-file-input');
+document.getElementById('pfp-upload-btn').addEventListener('click', () => pfpFileInput.click());
+
+pfpFileInput.addEventListener('change', async () => {
+  const file = pfpFileInput.files[0];
+  if (!file) return;
+  try {
+    const dataUrl = await resizeImageToDataUrl(file);
+    localStorage.setItem('profilePicture', dataUrl);
     applyProfile();
-  }, 400);
+  } catch {
+    // Not worth a whole error UI for a local avatar upload -- just leave the
+    // previous photo (or fallback) in place if the file couldn't be read.
+  }
+  pfpFileInput.value = '';
+});
+
+pfpRemoveBtn.addEventListener('click', () => {
+  localStorage.removeItem('profilePicture');
+  applyProfile();
 });
 
 document.getElementById('settings-icon-btn').addEventListener('click', () => switchToView('settings'));

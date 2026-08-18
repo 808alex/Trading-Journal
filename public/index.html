@@ -275,9 +275,21 @@
       <h2>Settings</h2>
 
       <h3>Profile</h3>
+      <div class="pfp-upload">
+        <div id="pfp-preview" class="pfp-preview">?</div>
+        <div class="pfp-upload-actions">
+          <button type="button" id="pfp-upload-btn" class="btn-secondary">Upload Photo</button>
+          <button type="button" id="pfp-remove-btn" class="btn-danger hidden">Remove</button>
+          <input type="file" id="pfp-file-input" accept="image/*" class="hidden">
+        </div>
+      </div>
+
       <div class="field">
         <label for="settings-username">Display name</label>
-        <input type="text" id="settings-username" placeholder="What should we call you?">
+        <div class="inline-input-group">
+          <input type="text" id="settings-username" placeholder="What should we call you?">
+          <button type="button" id="settings-username-save" class="btn-secondary">Enter</button>
+        </div>
       </div>
 
       <h3>Currency</h3>

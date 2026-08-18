@@ -210,6 +210,8 @@ body::before {
   height: 32px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  background-size: cover;
+  background-position: center;
   color: white;
   display: flex;
   align-items: center;
@@ -223,6 +225,48 @@ body::before {
   font-size: 0.85rem;
   color: var(--text);
   white-space: nowrap;
+}
+
+.pfp-upload {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.pfp-preview {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  background-size: cover;
+  background-position: center;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.pfp-upload-actions {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.inline-input-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.inline-input-group input {
+  flex: 1;
+  min-width: 0;
+}
+
+.inline-input-group button {
+  flex-shrink: 0;
 }
 
 .nav-backdrop {
