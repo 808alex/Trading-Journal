@@ -12,6 +12,26 @@ function serialize(row) {
   return { ...row, ...computePnl(row) };
 }
 
+// Shared by POST (log-and-close in one step) and PUT (close later): a trade
+// can only become "closed" once it has an exit value, a thesis, a grade, and
+// a followed-plan answer — the whole point of the journal is that these
+// aren't optional afterthoughts.
+function validateCloseFields(fields) {
+  if (fields.exit_price == null && fields.exit_mcap == null) {
+    return 'exit_price or exit_mcap is required to close a trade';
+  }
+  if (!fields.thesis || !String(fields.thesis).trim()) {
+    return 'thesis is required before a trade can be closed';
+  }
+  if (!GRADES.includes(fields.grade)) {
+    return `grade must be one of ${GRADES.join(', ')} to close a trade`;
+  }
+  if (!FOLLOWED_PLAN.includes(fields.followed_plan)) {
+    return `followed_plan must be one of ${FOLLOWED_PLAN.join(', ')} to close a trade`;
+  }
+  return null;
+}
+
 // GET /api/trades?from=YYYY-MM-DD&to=YYYY-MM-DD&grade=A
 router.get('/', (req, res) => {
   const { from, to, grade } = req.query;
@@ -19,11 +39,11 @@ router.get('/', (req, res) => {
   const params = [];
 
   if (from) {
-    clauses.push("date(coalesce(closed_at, created_at)) >= ?");
+    clauses.push('date(coalesce(closed_at, created_at)) >= ?');
     params.push(from);
   }
   if (to) {
-    clauses.push("date(coalesce(closed_at, created_at)) <= ?");
+    clauses.push('date(coalesce(closed_at, created_at)) <= ?');
     params.push(to);
   }
   if (grade) {
@@ -45,20 +65,33 @@ router.get('/:id', (req, res) => {
   res.json(serialize(row));
 });
 
-// POST /api/trades — open a new trade
+// POST /api/trades — open a trade, or log+close it in one shot (fast memecoin
+// trades often finish in minutes, so the whole lifecycle can be submitted at once).
 router.post('/', (req, res) => {
   const {
     coin_name,
+    contract_address,
     entry_price,
     entry_mcap,
+    exit_price,
+    exit_mcap,
     amount_invested,
     percent_risked,
+    fees,
     emotional_state,
     thesis,
+    followed_plan,
+    thoughts_during,
+    lesson_learned,
+    grade,
+    status,
   } = req.body;
 
   if (!coin_name || !coin_name.trim()) {
     return res.status(400).json({ error: 'coin_name is required' });
+  }
+  if (!contract_address || !contract_address.trim()) {
+    return res.status(400).json({ error: 'contract_address is required' });
   }
   if (entry_price == null && entry_mcap == null) {
     return res.status(400).json({ error: 'entry_price or entry_mcap is required' });
@@ -73,20 +106,38 @@ router.post('/', (req, res) => {
     return res.status(400).json({ error: `emotional_state must be one of ${EMOTIONAL_STATES.join(', ')}` });
   }
 
+  const closing = status === 'closed';
+  if (closing) {
+    const err = validateCloseFields({ exit_price, exit_mcap, thesis, grade, followed_plan });
+    if (err) return res.status(400).json({ error: err });
+  }
+
   const result = db
     .prepare(
       `INSERT INTO trades
-        (coin_name, entry_price, entry_mcap, amount_invested, percent_risked, emotional_state, thesis)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+        (coin_name, contract_address, entry_price, entry_mcap, exit_price, exit_mcap,
+         amount_invested, percent_risked, fees, thesis, emotional_state,
+         followed_plan, thoughts_during, lesson_learned, grade, status, closed_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       coin_name.trim(),
+      contract_address.trim(),
       entry_price ?? null,
       entry_mcap ?? null,
+      exit_price ?? null,
+      exit_mcap ?? null,
       Number(amount_invested),
       Number(percent_risked),
+      fees ? Number(fees) : 0,
+      thesis ?? null,
       emotional_state,
-      thesis ?? null
+      followed_plan ?? null,
+      thoughts_during ?? null,
+      lesson_learned ?? null,
+      grade ?? null,
+      closing ? 'closed' : 'open',
+      closing ? new Date().toISOString() : null
     );
 
   const row = db.prepare('SELECT * FROM trades WHERE id = ?').get(result.lastInsertRowid);
@@ -100,12 +151,14 @@ router.put('/:id', (req, res) => {
 
   const fields = [
     'coin_name',
+    'contract_address',
     'entry_price',
     'entry_mcap',
     'exit_price',
     'exit_mcap',
     'amount_invested',
     'percent_risked',
+    'fees',
     'thesis',
     'emotional_state',
     'followed_plan',
@@ -122,18 +175,8 @@ router.put('/:id', (req, res) => {
   const closing = req.body.status === 'closed';
 
   if (closing) {
-    if (next.exit_price == null && next.exit_mcap == null) {
-      return res.status(400).json({ error: 'exit_price or exit_mcap is required to close a trade' });
-    }
-    if (!next.thesis || !String(next.thesis).trim()) {
-      return res.status(400).json({ error: 'thesis is required before a trade can be closed' });
-    }
-    if (!GRADES.includes(next.grade)) {
-      return res.status(400).json({ error: `grade must be one of ${GRADES.join(', ')} to close a trade` });
-    }
-    if (!FOLLOWED_PLAN.includes(next.followed_plan)) {
-      return res.status(400).json({ error: `followed_plan must be one of ${FOLLOWED_PLAN.join(', ')} to close a trade` });
-    }
+    const err = validateCloseFields(next);
+    if (err) return res.status(400).json({ error: err });
   }
 
   if (next.emotional_state && !EMOTIONAL_STATES.includes(next.emotional_state)) {
@@ -142,19 +185,21 @@ router.put('/:id', (req, res) => {
 
   db.prepare(
     `UPDATE trades SET
-      coin_name = ?, entry_price = ?, entry_mcap = ?, exit_price = ?, exit_mcap = ?,
-      amount_invested = ?, percent_risked = ?, thesis = ?, emotional_state = ?,
+      coin_name = ?, contract_address = ?, entry_price = ?, entry_mcap = ?, exit_price = ?, exit_mcap = ?,
+      amount_invested = ?, percent_risked = ?, fees = ?, thesis = ?, emotional_state = ?,
       followed_plan = ?, thoughts_during = ?, lesson_learned = ?, grade = ?,
       status = ?, closed_at = ?
      WHERE id = ?`
   ).run(
     next.coin_name,
+    next.contract_address,
     next.entry_price ?? null,
     next.entry_mcap ?? null,
     next.exit_price ?? null,
     next.exit_mcap ?? null,
     next.amount_invested,
     next.percent_risked,
+    next.fees ?? 0,
     next.thesis ?? null,
     next.emotional_state,
     next.followed_plan ?? null,

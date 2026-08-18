@@ -10,7 +10,7 @@
   <header class="app-header">
     <h1>Trading Journal</h1>
     <nav class="tabs">
-      <button class="tab-btn active" data-view="add">Add Trade</button>
+      <button class="tab-btn active" data-view="add">Log Trade</button>
       <button class="tab-btn" data-view="list">Trade List</button>
       <button class="tab-btn" data-view="totals">Total P&amp;L</button>
       <button class="tab-btn" data-view="calendar">Calendar</button>
@@ -18,26 +18,30 @@
   </header>
 
   <main>
-    <!-- ADD TRADE VIEW -->
+    <!-- ADD / LOG TRADE VIEW -->
     <section id="view-add" class="view active">
-      <h2>Log a New Trade</h2>
+      <h2>Log a Trade</h2>
+      <p class="hint">Fill in entry details, and exit + reflection too if the trade's already done — no need to come back later.</p>
       <form id="add-trade-form">
-        <div class="field">
-          <label for="coin_name">Coin name / contract address *</label>
-          <input type="text" id="coin_name" name="coin_name" required>
-        </div>
-
         <div class="field-row">
           <div class="field">
-            <label for="entry_price">Entry price</label>
-            <input type="number" step="any" id="entry_price" name="entry_price">
+            <label for="coin_name">Coin name *</label>
+            <input type="text" id="coin_name" name="coin_name" required>
           </div>
           <div class="field">
-            <label for="entry_mcap">Entry market cap</label>
-            <input type="number" step="any" id="entry_mcap" name="entry_mcap">
+            <label for="contract_address">Contract address *</label>
+            <input type="text" id="contract_address" name="contract_address" required>
           </div>
         </div>
-        <p class="hint">Fill in at least one: entry price or entry market cap.</p>
+
+        <div class="field">
+          <label>Entry value *</label>
+          <div class="value-toggle" data-toggle-group="entry">
+            <button type="button" class="toggle-btn active" data-type="mcap">Market Cap</button>
+            <button type="button" class="toggle-btn" data-type="price">Price</button>
+          </div>
+          <input type="text" inputmode="decimal" id="entry_value" placeholder="e.g. 500k, 1.2m, 0.000045" required>
+        </div>
 
         <div class="field-row">
           <div class="field">
@@ -63,11 +67,63 @@
         </div>
 
         <div class="field">
-          <label for="thesis">Thesis — why are you buying?</label>
-          <textarea id="thesis" name="thesis" rows="3" placeholder="Optional now, but required before you can close this trade."></textarea>
+          <label for="thesis">Thesis — why are you buying? <span class="hint-inline">(required to close)</span></label>
+          <textarea id="thesis" name="thesis" rows="2"></textarea>
         </div>
 
-        <button type="submit" class="btn-primary">Log Trade</button>
+        <hr class="section-divider">
+        <h3>Exit &amp; Reflection <span class="hint-inline">— trade already done? Fill this in now and close it below.</span></h3>
+
+        <div class="field">
+          <label>Exit value</label>
+          <div class="value-toggle" data-toggle-group="exit">
+            <button type="button" class="toggle-btn active" data-type="mcap">Market Cap</button>
+            <button type="button" class="toggle-btn" data-type="price">Price</button>
+          </div>
+          <input type="text" inputmode="decimal" id="exit_value" placeholder="e.g. 500k, 1.2m, 0.000045">
+        </div>
+
+        <div class="field">
+          <label for="fees">Fees / gas / tip (SOL)</label>
+          <input type="number" step="any" id="fees" name="fees" placeholder="0">
+        </div>
+
+        <div class="field">
+          <label for="followed_plan">Did you follow your plan?</label>
+          <select id="followed_plan" name="followed_plan">
+            <option value="">—</option>
+            <option value="yes">Yes</option>
+            <option value="partially">Partially</option>
+            <option value="no">No</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="thoughts_during">Thoughts / emotions during the trade</label>
+          <textarea id="thoughts_during" name="thoughts_during" rows="2"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="lesson_learned">Lesson learned</label>
+          <textarea id="lesson_learned" name="lesson_learned" rows="2"></textarea>
+        </div>
+
+        <div id="add-grade-guide" class="grade-guide"></div>
+        <div class="field">
+          <label for="grade">Grade (process quality, not P&amp;L)</label>
+          <select id="grade" name="grade">
+            <option value="">—</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="D">D</option>
+          </select>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" id="save-open-btn" class="btn-secondary" data-status="open">Save as Open</button>
+          <button type="submit" id="save-closed-btn" class="btn-primary" data-status="closed">Log &amp; Close Trade</button>
+        </div>
         <p id="add-trade-status" class="status-msg"></p>
       </form>
     </section>

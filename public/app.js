@@ -6,7 +6,57 @@ const GRADE_GUIDE = [
 ];
 
 const EMOTIONAL_LABELS = { calm: 'Calm', excited: 'Excited', anxious: 'Anxious', bored: 'Bored', fomo: 'FOMO' };
-const FOLLOWED_PLAN_LABELS = { yes: 'Yes', partially: 'Partially', no: 'No' };
+
+document.querySelectorAll('.grade-guide').forEach((el) => {
+  el.innerHTML = GRADE_GUIDE.map(([g, desc]) => `<div><b>${g}</b> — ${desc}</div>`).join('');
+});
+
+// ---------- Flexible number parsing ----------
+// Accepts 500000, 500,000, 500k, 500K, 1.2m, 1,000,000, etc.
+function parseFlexibleNumber(raw) {
+  if (raw == null) return null;
+  const s = String(raw).trim().replace(/,/g, '');
+  if (s === '') return null;
+
+  const match = s.match(/^(-?\d*\.?\d+)\s*([kKmMbB])?$/);
+  if (!match) {
+    const n = Number(s);
+    return Number.isNaN(n) ? null : n;
+  }
+
+  const num = parseFloat(match[1]);
+  const mult = { k: 1e3, m: 1e6, b: 1e9 }[match[2]?.toLowerCase()] || 1;
+  return num * mult;
+}
+
+// ---------- Value toggle (Market Cap / Price switch) ----------
+function initValueToggles(root) {
+  root.querySelectorAll('.value-toggle').forEach((group) => {
+    group.querySelectorAll('.toggle-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        group.querySelectorAll('.toggle-btn').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+  });
+}
+
+function getToggleType(root, groupName) {
+  const group = root.querySelector(`.value-toggle[data-toggle-group="${groupName}"]`);
+  return group.querySelector('.toggle-btn.active').dataset.type;
+}
+
+// { price, mcap } — parsed value goes in the slot matching the active toggle, other is null
+function readToggledValue(root, groupName, inputId) {
+  const type = getToggleType(root, groupName);
+  const parsed = parseFlexibleNumber(document.getElementById(inputId).value);
+  return {
+    price: type === 'price' ? parsed : null,
+    mcap: type === 'mcap' ? parsed : null,
+  };
+}
+
+initValueToggles(document);
 
 // ---------- Tab navigation ----------
 const tabButtons = document.querySelectorAll('.tab-btn');
@@ -36,10 +86,10 @@ async function api(path, options) {
   return data;
 }
 
-function fmtSol(n) {
+function fmtSol(n, decimals = 3) {
   if (n == null) return '—';
   const sign = n > 0 ? '+' : '';
-  return `${sign}${n.toFixed(3)} SOL`;
+  return `${sign}${n.toFixed(decimals)} SOL`;
 }
 
 function fmtPct(n) {
@@ -53,7 +103,13 @@ function pnlClass(n) {
   return n > 0 ? 'pnl-pos' : n < 0 ? 'pnl-neg' : 'pnl-neutral';
 }
 
-// ---------- Add Trade form ----------
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ---------- Add / Log Trade form ----------
 const addForm = document.getElementById('add-trade-form');
 const addStatus = document.getElementById('add-trade-status');
 
@@ -62,22 +118,38 @@ addForm.addEventListener('submit', async (e) => {
   addStatus.textContent = '';
   addStatus.className = 'status-msg';
 
-  const fd = new FormData(addForm);
+  const status = e.submitter?.dataset.status || 'open';
+  const entryVal = readToggledValue(addForm, 'entry', 'entry_value');
+  const exitVal = readToggledValue(addForm, 'exit', 'exit_value');
+
   const body = {
-    coin_name: fd.get('coin_name'),
-    entry_price: fd.get('entry_price') ? Number(fd.get('entry_price')) : null,
-    entry_mcap: fd.get('entry_mcap') ? Number(fd.get('entry_mcap')) : null,
-    amount_invested: Number(fd.get('amount_invested')),
-    percent_risked: Number(fd.get('percent_risked')),
-    emotional_state: fd.get('emotional_state'),
-    thesis: fd.get('thesis') || null,
+    coin_name: document.getElementById('coin_name').value,
+    contract_address: document.getElementById('contract_address').value,
+    entry_price: entryVal.price,
+    entry_mcap: entryVal.mcap,
+    exit_price: exitVal.price,
+    exit_mcap: exitVal.mcap,
+    amount_invested: Number(document.getElementById('amount_invested').value),
+    percent_risked: Number(document.getElementById('percent_risked').value),
+    fees: document.getElementById('fees').value ? Number(document.getElementById('fees').value) : 0,
+    emotional_state: document.getElementById('emotional_state').value,
+    thesis: document.getElementById('thesis').value || null,
+    followed_plan: document.getElementById('followed_plan').value || null,
+    thoughts_during: document.getElementById('thoughts_during').value || null,
+    lesson_learned: document.getElementById('lesson_learned').value || null,
+    grade: document.getElementById('grade').value || null,
+    status,
   };
 
   try {
     await api('/api/trades', { method: 'POST', body: JSON.stringify(body) });
-    addStatus.textContent = 'Trade logged.';
+    addStatus.textContent = status === 'closed' ? 'Trade logged and closed.' : 'Trade logged as open.';
     addStatus.classList.add('success');
     addForm.reset();
+    addForm.querySelectorAll('.value-toggle').forEach((group) => {
+      group.querySelectorAll('.toggle-btn').forEach((b) => b.classList.remove('active'));
+      group.querySelector('.toggle-btn').classList.add('active');
+    });
   } catch (err) {
     addStatus.textContent = err.message;
     addStatus.classList.add('error');
@@ -113,10 +185,11 @@ async function loadTradeList() {
       <div class="trade-card-top">
         <span class="coin">${escapeHtml(t.coin_name)}
           <span class="badge status-${t.status}">${t.status}</span>
-          ${t.grade ? `<span class="badge">${t.grade}</span>` : ''}
+          ${t.grade ? `<span class="badge grade-${t.grade}">${t.grade}</span>` : ''}
         </span>
         <span class="${pnlClass(t.pnl_amount)}">${fmtSol(t.pnl_amount)} (${fmtPct(t.pnl_percent)})</span>
       </div>
+      <div class="trade-card-meta">${escapeHtml(t.contract_address)}</div>
       <div class="trade-card-meta">${date} · ${t.percent_risked}% risked · ${EMOTIONAL_LABELS[t.emotional_state] || t.emotional_state}</div>
     `;
     card.addEventListener('click', () => openTradeModal(t.id));
@@ -132,12 +205,6 @@ document.getElementById('clear-filters').addEventListener('click', () => {
   loadTradeList();
 });
 
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
 // ---------- Trade detail / close modal ----------
 const modal = document.getElementById('trade-modal');
 const modalBody = document.getElementById('modal-body');
@@ -147,15 +214,31 @@ modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList
 
 async function openTradeModal(id) {
   const t = await api(`/api/trades/${id}`);
-  const gradeGuideHtml = GRADE_GUIDE.map(([g, desc]) => `<div><b>${g}</b> — ${desc}</div>`).join('');
+  const exitType = t.exit_price != null ? 'price' : 'mcap';
+  const exitValue = t.exit_price ?? t.exit_mcap ?? '';
 
   modalBody.innerHTML = `
     <h2>${escapeHtml(t.coin_name)}</h2>
+    <p class="hint">${escapeHtml(t.contract_address)}</p>
     <p class="hint">Logged ${t.created_at.slice(0, 16).replace('T', ' ')} · Status: ${t.status}</p>
 
     <div class="field-row">
-      <div class="field"><label>Exit price</label><input type="number" step="any" id="m-exit_price" value="${t.exit_price ?? ''}"></div>
-      <div class="field"><label>Exit market cap</label><input type="number" step="any" id="m-exit_mcap" value="${t.exit_mcap ?? ''}"></div>
+      <div class="field"><label>Coin name</label><input type="text" id="m-coin_name" value="${escapeHtml(t.coin_name)}"></div>
+      <div class="field"><label>Contract address</label><input type="text" id="m-contract_address" value="${escapeHtml(t.contract_address)}"></div>
+    </div>
+
+    <div class="field">
+      <label>Exit value</label>
+      <div class="value-toggle" data-toggle-group="m-exit">
+        <button type="button" class="toggle-btn ${exitType === 'mcap' ? 'active' : ''}" data-type="mcap">Market Cap</button>
+        <button type="button" class="toggle-btn ${exitType === 'price' ? 'active' : ''}" data-type="price">Price</button>
+      </div>
+      <input type="text" inputmode="decimal" id="m-exit_value" value="${exitValue}" placeholder="e.g. 500k, 1.2m, 0.000045">
+    </div>
+
+    <div class="field">
+      <label>Fees / gas / tip (SOL)</label>
+      <input type="number" step="any" id="m-fees" value="${t.fees ?? 0}">
     </div>
 
     <div class="field">
@@ -183,7 +266,7 @@ async function openTradeModal(id) {
       <textarea id="m-lesson_learned" rows="2">${t.lesson_learned ?? ''}</textarea>
     </div>
 
-    <div class="grade-guide">${gradeGuideHtml}</div>
+    <div class="grade-guide">${GRADE_GUIDE.map(([g, desc]) => `<div><b>${g}</b> — ${desc}</div>`).join('')}</div>
 
     <div class="field">
       <label>Grade (process quality, not P&amp;L)</label>
@@ -207,11 +290,16 @@ async function openTradeModal(id) {
   `;
 
   modal.classList.remove('hidden');
+  initValueToggles(modalBody);
 
   function gatherFields() {
+    const exit = readToggledValue(modalBody, 'm-exit', 'm-exit_value');
     return {
-      exit_price: document.getElementById('m-exit_price').value ? Number(document.getElementById('m-exit_price').value) : null,
-      exit_mcap: document.getElementById('m-exit_mcap').value ? Number(document.getElementById('m-exit_mcap').value) : null,
+      coin_name: document.getElementById('m-coin_name').value,
+      contract_address: document.getElementById('m-contract_address').value,
+      exit_price: exit.price,
+      exit_mcap: exit.mcap,
+      fees: document.getElementById('m-fees').value ? Number(document.getElementById('m-fees').value) : 0,
       thesis: document.getElementById('m-thesis').value || null,
       followed_plan: document.getElementById('m-followed_plan').value || null,
       thoughts_during: document.getElementById('m-thoughts_during').value || null,
@@ -333,7 +421,8 @@ async function loadCalendar() {
     const pnl = byDay[dateStr];
     const cell = document.createElement('div');
     cell.className = `cal-cell ${pnl == null ? 'no-trades' : pnlClass(pnl)}`;
-    cell.innerHTML = `<span class="day-num">${day}</span>${pnl != null ? `<span class="day-pnl">${fmtSol(pnl)}</span>` : ''}`;
+    cell.title = pnl != null ? fmtSol(pnl) : '';
+    cell.innerHTML = `<span class="day-num">${day}</span>${pnl != null ? `<span class="day-pnl">${fmtSol(pnl, 2)}</span>` : ''}`;
     grid.appendChild(cell);
   }
 }

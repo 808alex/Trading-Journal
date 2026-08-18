@@ -12,7 +12,9 @@ function computePnl(trade) {
 
   const ratio = exitRef / entryRef;
   const pnl_percent = (ratio - 1) * 100;
-  const pnl_amount = trade.amount_invested * (ratio - 1);
+  // Fees come out of the SOL result (what actually lands in your wallet),
+  // not the percent (a pure measure of the price move itself).
+  const pnl_amount = trade.amount_invested * (ratio - 1) - (trade.fees || 0);
 
   return { pnl_percent, pnl_amount };
 }
