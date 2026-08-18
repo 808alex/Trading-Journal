@@ -16,16 +16,21 @@
 </head>
 <body>
   <header class="app-header">
+    <button id="hamburger-btn" class="hamburger-btn" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
     <h1>Trading Journal</h1>
-    <nav class="tabs">
-      <button class="tab-btn active" data-view="dashboard">Dashboard</button>
-      <button class="tab-btn" data-view="add">Log Trade</button>
-      <button class="tab-btn" data-view="list">Trade List</button>
-      <button class="tab-btn" data-view="totals">Total P&amp;L</button>
-      <button class="tab-btn" data-view="journal">Journal</button>
-      <button class="tab-btn" data-view="settings">Settings</button>
-    </nav>
   </header>
+
+  <div id="nav-backdrop" class="nav-backdrop hidden"></div>
+  <nav id="nav-drawer" class="nav-drawer hidden">
+    <button class="tab-btn active" data-view="dashboard">Home</button>
+    <button class="tab-btn" data-view="add">Log Trade</button>
+    <button class="tab-btn" data-view="list">Trade List</button>
+    <button class="tab-btn" data-view="totals">Total P&amp;L</button>
+    <button class="tab-btn" data-view="journal">Journal</button>
+    <button class="tab-btn" data-view="settings">Settings</button>
+  </nav>
 
   <main>
     <!-- DASHBOARD VIEW -->
@@ -268,12 +273,21 @@
 
       <h3>Currency</h3>
       <p class="hint">Applies everywhere P&amp;L is shown &mdash; the underlying data always stays in SOL, this is just how it's displayed.</p>
-      <div class="field">
-        <div class="value-toggle" data-toggle-group="settings-currency">
-          <button type="button" class="toggle-btn active" data-type="sol">SOL</button>
-          <button type="button" class="toggle-btn" data-type="usd">USD</button>
+      <div class="field-row">
+        <div class="field">
+          <label for="settings-currency">Display currency</label>
+          <select id="settings-currency">
+            <option value="sol">SOL (native)</option>
+            <option value="usd">USD ($)</option>
+            <option value="gbp">GBP (£)</option>
+            <option value="eur">EUR (€)</option>
+            <option value="jpy">JPY (¥)</option>
+          </select>
         </div>
-        <input type="number" step="any" id="settings-sol-price" placeholder="SOL price in $" class="sol-price-input hidden">
+        <div class="field">
+          <label for="settings-sol-price" id="settings-sol-price-label">SOL price</label>
+          <input type="number" step="any" id="settings-sol-price" class="sol-price-input hidden">
+        </div>
       </div>
 
       <h3>Theme</h3>
@@ -282,8 +296,9 @@
         <button type="button" class="theme-swatch" data-theme="emerald" style="--sw1:#10b981;--sw2:#eab308">Emerald</button>
         <button type="button" class="theme-swatch" data-theme="crimson" style="--sw1:#f43f5e;--sw2:#fb923c">Crimson</button>
         <button type="button" class="theme-swatch" data-theme="ocean" style="--sw1:#3b82f6;--sw2:#06b6d4">Ocean</button>
+        <button type="button" class="theme-swatch" data-theme="pink" style="--sw1:#ec4899;--sw2:#a78bfa">Pink</button>
+        <button type="button" class="theme-swatch" data-theme="white" style="--sw1:#7c5cff;--sw2:#22d3ee">White</button>
       </div>
-      <p class="hint">Profit/loss colors (green/red/gold) stay the same across every theme &mdash; only the accent changes.</p>
     </section>
   </main>
 

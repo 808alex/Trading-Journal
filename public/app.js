@@ -72,8 +72,31 @@ function switchToView(viewName) {
   if (viewName === 'dashboard') loadDashboard();
 }
 
+// ---------- Hamburger nav drawer ----------
+const hamburgerBtn = document.getElementById('hamburger-btn');
+const navDrawer = document.getElementById('nav-drawer');
+const navBackdrop = document.getElementById('nav-backdrop');
+
+function closeDrawer() {
+  hamburgerBtn.classList.remove('open');
+  navDrawer.classList.add('hidden');
+  navBackdrop.classList.add('hidden');
+}
+
+hamburgerBtn.addEventListener('click', () => {
+  const willOpen = navDrawer.classList.contains('hidden');
+  hamburgerBtn.classList.toggle('open', willOpen);
+  navDrawer.classList.toggle('hidden', !willOpen);
+  navBackdrop.classList.toggle('hidden', !willOpen);
+});
+
+navBackdrop.addEventListener('click', closeDrawer);
+
 tabButtons.forEach((btn) => {
-  btn.addEventListener('click', () => switchToView(btn.dataset.view));
+  btn.addEventListener('click', () => {
+    switchToView(btn.dataset.view);
+    closeDrawer();
+  });
 });
 
 document.querySelectorAll('.quick-link-btn').forEach((btn) => {
@@ -100,18 +123,30 @@ function fmtSol(n, decimals = 3) {
 // ---------- Global currency setting (Settings tab) ----------
 // A single app-wide display currency, not per-view -- the underlying data
 // is always stored/computed in SOL. Persisted so it survives a reload.
+// SOL itself needs no conversion; each fiat option remembers its own rate
+// (SOL/USD and SOL/EUR are different numbers) so switching back and forth
+// doesn't lose what you typed.
+const CURRENCY_SYMBOLS = { usd: '$', gbp: '£', eur: '€', jpy: '¥' };
 let appCurrency = localStorage.getItem('appCurrency') || 'sol';
-let solPriceUsd = Number(localStorage.getItem('solPriceUsd')) || null;
+let solPrices = {};
+try {
+  solPrices = JSON.parse(localStorage.getItem('solPrices') || '{}');
+} catch {
+  solPrices = {};
+}
 
-// Displays a SOL amount in whichever currency is set in Settings. USD uses
-// standard 2dp currency formatting (0dp above $1000).
+// Displays a SOL amount in whichever currency is set in Settings. Standard
+// 2dp currency formatting (0dp above $1000, and JPY is always 0dp since it
+// has no minor subunit in everyday use).
 function fmtMoney(sol, decimals) {
   if (sol == null) return '—';
-  if (appCurrency === 'usd' && solPriceUsd) {
-    const usd = sol * solPriceUsd;
-    const sign = usd > 0 ? '+' : usd < 0 ? '-' : '';
-    const abs = Math.abs(usd);
-    return `${sign}$${abs >= 1000 ? abs.toFixed(0) : abs.toFixed(2)}`;
+  const price = solPrices[appCurrency];
+  if (appCurrency !== 'sol' && price) {
+    const amount = sol * price;
+    const sign = amount > 0 ? '+' : amount < 0 ? '-' : '';
+    const abs = Math.abs(amount);
+    const dp = appCurrency === 'jpy' ? 0 : abs >= 1000 ? 0 : 2;
+    return `${sign}${CURRENCY_SYMBOLS[appCurrency]}${abs.toFixed(dp)}`;
   }
   return fmtSol(sol, decimals);
 }
@@ -766,26 +801,34 @@ usernameInput.addEventListener('input', () => {
   }, 400);
 });
 
+const settingsCurrencySelect = document.getElementById('settings-currency');
 const settingsSolPriceInput = document.getElementById('settings-sol-price');
-if (solPriceUsd) settingsSolPriceInput.value = solPriceUsd;
-settingsSolPriceInput.classList.toggle('hidden', appCurrency !== 'usd');
+const settingsSolPriceLabel = document.getElementById('settings-sol-price-label');
 
-document.querySelectorAll('.value-toggle[data-toggle-group="settings-currency"] .toggle-btn').forEach((btn) => {
-  if (btn.dataset.type === appCurrency) {
-    document.querySelectorAll('.value-toggle[data-toggle-group="settings-currency"] .toggle-btn').forEach((b) => b.classList.remove('active'));
-    btn.classList.add('active');
+function updateCurrencyPriceField() {
+  const isFiat = appCurrency !== 'sol';
+  settingsSolPriceInput.classList.toggle('hidden', !isFiat);
+  if (isFiat) {
+    settingsSolPriceLabel.textContent = `1 SOL in ${appCurrency.toUpperCase()}`;
+    settingsSolPriceInput.placeholder = `e.g. ${CURRENCY_SYMBOLS[appCurrency]}150`;
+    settingsSolPriceInput.value = solPrices[appCurrency] ?? '';
   }
-  btn.addEventListener('click', () => {
-    appCurrency = btn.dataset.type;
-    localStorage.setItem('appCurrency', appCurrency);
-    settingsSolPriceInput.classList.toggle('hidden', appCurrency !== 'usd');
-  });
+}
+
+settingsCurrencySelect.value = appCurrency;
+updateCurrencyPriceField();
+
+settingsCurrencySelect.addEventListener('change', () => {
+  appCurrency = settingsCurrencySelect.value;
+  localStorage.setItem('appCurrency', appCurrency);
+  updateCurrencyPriceField();
 });
 
 settingsSolPriceInput.addEventListener('input', () => {
   const val = Number(settingsSolPriceInput.value);
-  solPriceUsd = val > 0 ? val : null;
-  if (solPriceUsd) localStorage.setItem('solPriceUsd', solPriceUsd);
+  if (val > 0) solPrices[appCurrency] = val;
+  else delete solPrices[appCurrency];
+  localStorage.setItem('solPrices', JSON.stringify(solPrices));
 });
 
 // Only the accent/background tint changes per theme -- green/red/gold stay

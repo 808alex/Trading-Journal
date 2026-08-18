@@ -42,6 +42,36 @@
   --glow-3: rgba(59, 130, 246, 0.08);
 }
 
+:root[data-theme="pink"] {
+  --accent: #ec4899;
+  --accent-2: #a78bfa;
+  --glow-1: rgba(236, 72, 153, 0.16);
+  --glow-2: rgba(167, 139, 250, 0.10);
+  --glow-3: rgba(236, 72, 153, 0.08);
+}
+
+/* The only light theme -- everything else is a dark-mode accent swap, but
+   "white" flips the base surface/text tokens too, so green/red/gold need
+   darker, more saturated values here to stay readable on a light background
+   (the bright mint/rose used on dark backgrounds would wash out on white). */
+:root[data-theme="white"] {
+  --bg: #ffffff;
+  --panel: #f5f4fa;
+  --panel-alt: #ebe8f5;
+  --border: #ddd8ec;
+  --text: #1c1730;
+  --text-dim: #6e6685;
+  --accent: #7c5cff;
+  --accent-2: #0891b2;
+  --glow-1: rgba(124, 92, 255, 0.07);
+  --glow-2: rgba(8, 145, 178, 0.05);
+  --glow-3: rgba(124, 92, 255, 0.04);
+  --green: #15803d;
+  --green-light: #059669;
+  --red: #dc2626;
+  --yellow: #b45309;
+}
+
 * { box-sizing: border-box; }
 
 @keyframes fadeInUp {
@@ -90,14 +120,17 @@ body::before {
 }
 
 .app-header {
-  padding: 1.25rem 2rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1.1rem 2rem;
   border-bottom: 1px solid var(--border);
   backdrop-filter: blur(6px);
 }
 
 .app-header h1 {
-  margin: 0 0 1rem;
-  font-size: 1.4rem;
+  margin: 0;
+  font-size: 1.3rem;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: linear-gradient(90deg, var(--text) 30%, var(--accent-2));
   -webkit-background-clip: text;
@@ -106,27 +139,90 @@ body::before {
   letter-spacing: 0.2px;
 }
 
-.tabs {
+.hamburger-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
   display: flex;
-  gap: 0.25rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
 }
 
-.tab-btn {
+.hamburger-btn:hover { border-color: var(--accent); background: var(--panel); }
+
+.hamburger-btn span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: var(--text);
+  border-radius: 2px;
+  transition: transform 200ms ease, opacity 200ms ease;
+}
+
+.hamburger-btn.open span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.hamburger-btn.open span:nth-child(2) { opacity: 0; }
+.hamburger-btn.open span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+.nav-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 5, 12, 0.5);
+  z-index: 20;
+  animation: fadeInUp 150ms ease;
+}
+
+.nav-backdrop.hidden { display: none; }
+
+.nav-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 230px;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  z-index: 21;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1.5rem 1rem;
+  box-shadow: 12px 0 40px -20px rgba(0, 0, 0, 0.6);
+  animation: slideIn 200ms ease;
+}
+
+.nav-drawer.hidden { display: none; }
+
+@keyframes slideIn {
+  from { transform: translateX(-12px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.nav-drawer .tab-btn {
   background: none;
   border: none;
+  border-left: 2px solid transparent;
   color: var(--text-dim);
-  padding: 0.6rem 1rem;
+  padding: 0.65rem 0.9rem;
+  text-align: left;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 0.95rem;
-  border-bottom: 2px solid transparent;
-  transition: color 150ms ease, border-color 150ms ease;
+  transition: color 150ms ease, background 150ms ease, border-color 150ms ease;
 }
 
-.tab-btn:hover { color: var(--text); }
+.nav-drawer .tab-btn:hover { color: var(--text); background: var(--panel-alt); }
 
-.tab-btn.active {
+.nav-drawer .tab-btn.active {
   color: var(--text);
-  border-bottom-color: var(--accent);
+  background: var(--panel-alt);
+  border-left-color: var(--accent);
 }
 
 main {
@@ -381,6 +477,7 @@ h3 {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 1.5rem;
+  margin-bottom: 2rem;
   animation: fadeInUp 250ms ease;
 }
 
@@ -409,6 +506,20 @@ h3 {
 
 #view-list h3 {
   margin-top: 1.5rem;
+}
+
+#view-dashboard h3 {
+  margin-top: 2.25rem;
+  margin-bottom: 0.75rem;
+}
+
+#view-dashboard .hint {
+  margin-top: -0.4rem;
+}
+
+#view-dashboard .pattern-list,
+#view-dashboard .corr-list {
+  margin-bottom: 2rem;
 }
 
 .hidden { display: none !important; }
