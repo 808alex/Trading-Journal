@@ -33,6 +33,7 @@
     <button class="tab-btn" data-view="list">Trade List</button>
     <button class="tab-btn" data-view="totals">Total P&amp;L</button>
     <button class="tab-btn" data-view="journal">Journal</button>
+    <button class="tab-btn" data-view="wallet">Wallet</button>
     <button class="tab-btn" data-view="settings">Settings</button>
   </nav>
 
@@ -96,6 +97,7 @@
         <button class="quick-link-btn" data-view="list">Trade List</button>
         <button class="quick-link-btn" data-view="totals">Total P&amp;L</button>
         <button class="quick-link-btn" data-view="journal">Journal</button>
+        <button class="quick-link-btn" data-view="wallet">Wallet</button>
       </div>
 
       <p id="dashboard-error" class="status-msg error hidden"></p>
@@ -330,6 +332,51 @@
       <h3>Past Entries</h3>
       <p id="journal-list-error" class="status-msg error hidden"></p>
       <div id="journal-list" class="trade-list"></div>
+    </section>
+
+    <!-- WALLET VIEW -->
+    <section id="view-wallet" class="view">
+      <h2>Wallet</h2>
+      <p class="hint">A running log of deposits and withdrawals &mdash; separate from trade P&amp;L, this just tracks money actually moved in and out of your wallet.</p>
+
+      <div class="value-toggle centered-toggle" data-toggle-group="display-mode">
+        <button type="button" class="toggle-btn" data-type="sol">SOL</button>
+        <button type="button" class="toggle-btn" data-type="fiat"><span class="fiat-toggle-label">USD</span></button>
+      </div>
+
+      <p id="wallet-error" class="status-msg error hidden"></p>
+      <div id="wallet-summary" class="totals-summary"></div>
+
+      <h3>Add Transaction</h3>
+      <form id="wallet-form">
+        <div class="field-row">
+          <div class="field">
+            <label for="wallet-type">Type</label>
+            <select id="wallet-type">
+              <option value="deposit">Deposit</option>
+              <option value="withdrawal">Withdrawal</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="wallet-amount">Amount (SOL)</label>
+            <input type="number" step="any" id="wallet-amount" required>
+          </div>
+          <div class="field">
+            <label for="wallet-date">Date</label>
+            <input type="date" id="wallet-date" required>
+          </div>
+        </div>
+        <div class="field">
+          <label for="wallet-note">Note (optional)</label>
+          <input type="text" id="wallet-note" placeholder="e.g. Coinbase transfer">
+        </div>
+        <button type="submit" class="btn-primary">Add Transaction</button>
+        <p id="wallet-status" class="status-msg"></p>
+      </form>
+
+      <h3>Transaction History</h3>
+      <p id="wallet-list-error" class="status-msg error hidden"></p>
+      <div id="wallet-list" class="trade-list"></div>
     </section>
 
     <!-- SETTINGS VIEW -->

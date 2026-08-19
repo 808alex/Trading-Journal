@@ -71,6 +71,7 @@ function switchToView(viewName) {
   if (viewName === 'totals') loadTotals();
   if (viewName === 'journal') loadJournalList();
   if (viewName === 'dashboard') loadDashboard();
+  if (viewName === 'wallet') loadWallet();
 }
 
 document.getElementById('back-btn').addEventListener('click', () => switchToView('dashboard'));
@@ -888,6 +889,110 @@ function openJournalViewModal(entry) {
   });
 }
 
+// ---------- Wallet ----------
+// Deliberately not tied into trade P&L math anywhere -- this is just a
+// ledger of money actually moved in and out of the wallet, so you can
+// sanity-check your real balance against what the trade-grading system
+// says, not have the two blended together.
+const walletForm = document.getElementById('wallet-form');
+const walletDateInput = document.getElementById('wallet-date');
+walletDateInput.value = todayStr();
+
+walletForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const statusEl = document.getElementById('wallet-status');
+  statusEl.textContent = '';
+  statusEl.className = 'status-msg';
+
+  const body = {
+    type: document.getElementById('wallet-type').value,
+    amount: Number(document.getElementById('wallet-amount').value),
+    txn_date: walletDateInput.value,
+    note: document.getElementById('wallet-note').value || null,
+  };
+
+  try {
+    await api('/api/wallet', { method: 'POST', body: JSON.stringify(body) });
+    statusEl.textContent = 'Transaction added.';
+    statusEl.classList.add('success');
+    walletForm.reset();
+    walletDateInput.value = todayStr();
+    loadWallet();
+  } catch (err) {
+    statusEl.textContent = err.message;
+    statusEl.classList.add('error');
+  }
+});
+
+async function deleteWalletTxn(id) {
+  if (!confirm('Delete this transaction? This cannot be undone.')) return;
+  try {
+    await api(`/api/wallet/${id}`, { method: 'DELETE' });
+    loadWallet();
+  } catch (err) {
+    const statusEl = document.getElementById('wallet-list-error');
+    statusEl.textContent = err.message;
+    statusEl.classList.remove('hidden');
+  }
+}
+
+async function loadWallet() {
+  const errorEl = document.getElementById('wallet-error');
+  const listErrorEl = document.getElementById('wallet-list-error');
+  let txns;
+  try {
+    txns = await api('/api/wallet');
+    errorEl.classList.add('hidden');
+    listErrorEl.classList.add('hidden');
+  } catch (err) {
+    const msg = `Couldn't load wallet: ${err.message}. Is the server running?`;
+    errorEl.textContent = msg;
+    errorEl.classList.remove('hidden');
+    document.getElementById('wallet-summary').innerHTML = '';
+    document.getElementById('wallet-list').innerHTML = '';
+    return;
+  }
+
+  const currentBalance = txns.length ? txns[0].balance_after : 0;
+  const totalDeposited = txns.filter((t) => t.type === 'deposit').reduce((sum, t) => sum + t.amount, 0);
+  const totalWithdrawn = txns.filter((t) => t.type === 'withdrawal').reduce((sum, t) => sum + t.amount, 0);
+
+  document.getElementById('wallet-summary').innerHTML = `
+    <div class="big-number ${pnlClass(currentBalance)}">${fmtMoney(currentBalance)}</div>
+    <p class="hint">Current wallet balance</p>
+    ${currencyPendingHint() ? `<p class="hint">${currencyPendingHint()}</p>` : ''}
+    <div class="stat-row"><span>Total deposited</span><span>${fmtMoney(totalDeposited)}</span></div>
+    <div class="stat-row"><span>Total withdrawn</span><span>${fmtMoney(-totalWithdrawn)}</span></div>
+    <div class="stat-row"><span>Transactions</span><span>${txns.length}</span></div>
+  `;
+
+  const listEl = document.getElementById('wallet-list');
+  listEl.innerHTML = '';
+  if (txns.length === 0) {
+    listEl.innerHTML = '<p class="hint">No transactions yet.</p>';
+    return;
+  }
+
+  txns.forEach((t) => {
+    const card = document.createElement('div');
+    card.className = 'trade-card';
+    const sign = t.type === 'deposit' ? '+' : '-';
+    card.innerHTML = `
+      <div class="trade-card-top">
+        <span class="coin">${sign}${t.amount.toFixed(3)} SOL <span class="badge wallet-${t.type}">${t.type}</span></span>
+        <span class="${pnlClass(t.balance_after)}">${fmtMoney(t.balance_after)}</span>
+      </div>
+      <div class="trade-card-meta">${t.txn_date}${t.note ? ` &middot; ${escapeHtml(t.note)}` : ''}</div>
+      <button type="button" class="btn-danger journal-card-delete">Delete</button>
+    `;
+    card.querySelector('.journal-card-delete').addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      deleteWalletTxn(t.id);
+    });
+    listEl.appendChild(card);
+  });
+}
+
 // ---------- Dashboard ----------
 function renderCorrList(containerId, rows) {
   const el = document.getElementById(containerId);
@@ -1306,6 +1411,7 @@ settingsSolPriceInput.addEventListener('input', () => {
 window.addEventListener('currencychange', () => {
   if (document.getElementById('view-totals').classList.contains('active')) loadTotals();
   if (document.getElementById('view-list').classList.contains('active')) loadTradeList();
+  if (document.getElementById('view-wallet').classList.contains('active')) loadWallet();
   if (!calendarModal.classList.contains('hidden')) loadCalendar();
 });
 
