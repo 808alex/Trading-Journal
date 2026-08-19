@@ -81,8 +81,8 @@
       <p>Not automatically &mdash; it's a local file (in this project's <code>data/</code> folder) you'd need to back up yourself.</p>
     </details>
 
-    <h4>Still stuck?</h4>
-    <a id="help-email-link" href="#" class="hint">Email yourself a note about it</a>
+    <h4>Contact</h4>
+    <a id="help-email-link" href="#" class="hint">Email us with a problem or question</a>
   </div>
 
   <main>
@@ -336,20 +336,27 @@
       <h2>Settings</h2>
 
       <h3>Profile</h3>
-      <div class="pfp-upload">
-        <div id="pfp-preview" class="pfp-preview">?</div>
-        <div class="pfp-upload-actions">
-          <button type="button" id="pfp-upload-btn" class="btn-secondary">Upload Photo</button>
-          <button type="button" id="pfp-remove-btn" class="btn-danger hidden">Remove</button>
-          <input type="file" id="pfp-file-input" accept="image/*" class="hidden">
-        </div>
+      <div id="settings-no-account">
+        <p class="hint">Create a local profile to personalize the app with your name and photo. This isn't a real online account &mdash; no password, no server, nothing leaves this computer.</p>
+        <button type="button" id="settings-create-account-btn" class="btn-primary">Create Account</button>
       </div>
 
-      <div class="field">
-        <label for="settings-username">Display name</label>
-        <div class="inline-input-group">
-          <input type="text" id="settings-username" placeholder="What should we call you?">
-          <button type="button" id="settings-username-save" class="btn-secondary">Enter</button>
+      <div id="settings-account-fields" class="hidden">
+        <div class="pfp-upload">
+          <div id="pfp-preview" class="pfp-preview">?</div>
+          <div class="pfp-upload-actions">
+            <button type="button" id="pfp-upload-btn" class="btn-secondary">Upload Photo</button>
+            <button type="button" id="pfp-remove-btn" class="btn-danger hidden">Remove</button>
+            <input type="file" id="pfp-file-input" accept="image/*" class="hidden">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="settings-username">Display name</label>
+          <div class="inline-input-group">
+            <input type="text" id="settings-username" placeholder="What should we call you?">
+            <button type="button" id="settings-username-save" class="btn-secondary">Enter</button>
+          </div>
         </div>
       </div>
 
@@ -380,9 +387,11 @@
         <button type="button" class="theme-swatch" data-theme="pink" style="--sw1:#ec4899;--sw2:#a78bfa">Pink</button>
       </div>
 
-      <h3>Account</h3>
-      <p class="hint">This app runs locally with a single profile, not real online accounts &mdash; there's no sign-up or password. "Log out" clears your name and photo from this browser and shows the welcome screen again next time; your trades and journal entries are untouched.</p>
-      <button type="button" id="settings-logout-btn" class="btn-danger">Log Out</button>
+      <div id="settings-logout-section" class="hidden">
+        <h3>Account</h3>
+        <p class="hint">Logging out clears your name and photo from this browser and brings back the "Create Account" option above; your trades and journal entries are untouched.</p>
+        <button type="button" id="settings-logout-btn" class="btn-danger">Log Out</button>
+      </div>
     </section>
   </main>
 

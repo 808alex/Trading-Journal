@@ -806,9 +806,13 @@ async function loadJournalList() {
 // dropping straight into the edit form. Reuses the same generic modal
 // shell as the trade-detail modal (#trade-modal/#modal-body); Edit hands
 // off to the actual form for changes.
+// Deliberately not the .field/label styling used in forms -- there the
+// label is a small hint above the thing you're editing, but in a read-only
+// view the label IS the heading and should read as more prominent than
+// the body text under it, not less.
 function journalField(label, value) {
   if (!value) return '';
-  return `<div class="field"><label>${label}</label><p>${escapeHtml(value)}</p></div>`;
+  return `<div class="view-field"><div class="view-field-label">${label}</div><p>${escapeHtml(value)}</p></div>`;
 }
 
 function openJournalViewModal(entry) {
@@ -924,6 +928,18 @@ function setAvatarVisual(el, dataUrl, fallbackText) {
 // Drives the Dashboard's "Welcome back" line, the bottom-left account
 // widget, and the Settings preview circle -- no real accounts, just a
 // personalization touch built from the display name/photo in Settings.
+// Whether the "Create Account" form is showing even though no name has
+// been saved yet -- needed for the very first fill-in, since before that
+// hasAccount (below) is false and would otherwise keep the fields hidden.
+let settingsShowCreateForm = false;
+
+function updateSettingsAccountUI() {
+  const hasAccount = !!localStorage.getItem('displayName');
+  document.getElementById('settings-no-account').classList.toggle('hidden', hasAccount || settingsShowCreateForm);
+  document.getElementById('settings-account-fields').classList.toggle('hidden', !hasAccount && !settingsShowCreateForm);
+  document.getElementById('settings-logout-section').classList.toggle('hidden', !hasAccount);
+}
+
 function applyProfile() {
   const name = localStorage.getItem('displayName');
   const pfp = localStorage.getItem('profilePicture');
@@ -942,10 +958,18 @@ function applyProfile() {
     dashboardGreeting.classList.add('hidden');
     accountName.textContent = 'Guest';
   }
+
+  updateSettingsAccountUI();
 }
 
 usernameInput.value = localStorage.getItem('displayName') || '';
 applyProfile();
+
+document.getElementById('settings-create-account-btn').addEventListener('click', () => {
+  settingsShowCreateForm = true;
+  updateSettingsAccountUI();
+  usernameInput.focus();
+});
 
 function saveUsername() {
   if (usernameInput.value.trim()) localStorage.setItem('displayName', usernameInput.value.trim());
@@ -1051,6 +1075,7 @@ document.getElementById('settings-logout-btn').addEventListener('click', () => {
   localStorage.removeItem('profilePicture');
   localStorage.removeItem('onboardingComplete');
   usernameInput.value = '';
+  settingsShowCreateForm = false;
   applyProfile();
   switchToView('dashboard');
   document.getElementById('onboarding-username').value = '';
@@ -1159,13 +1184,12 @@ document.getElementById('help-panel-close').addEventListener('click', () => help
 document.getElementById('replay-tour-btn').addEventListener('click', startTour);
 
 // A local single-user app has no real support inbox to send feedback to --
-// this opens the user's own default mail client with the subject
-// pre-filled, so they can address it to themselves (or wherever) and jot
-// down a bug or an idea while it's fresh. Deliberately no address baked in
-// here -- not something to commit to source even for a personal project.
+// Placeholder address -- swap for a real inbox before this is anything
+// more than a personal local app. (Kept out of source as a real address
+// for now since this repo may be public.)
 document.getElementById('help-email-link').addEventListener('click', (e) => {
   e.preventDefault();
-  window.location.href = `mailto:?subject=${encodeURIComponent('Trading Journal feedback')}`;
+  window.location.href = `mailto:feedback@example.com?subject=${encodeURIComponent('Trading Journal feedback')}`;
 });
 
 const settingsCurrencySelect = document.getElementById('settings-currency');

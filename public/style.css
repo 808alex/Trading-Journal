@@ -675,7 +675,8 @@ h3 {
 .centered-toggle {
   display: flex;
   justify-content: center;
-  margin-bottom: 0.5rem;
+  margin-top: 1.25rem;
+  margin-bottom: 0.75rem;
 }
 
 .tour-list {
@@ -907,7 +908,7 @@ h3 {
 
 .corr-value { white-space: nowrap; }
 
-.modal-wide { max-width: 640px; }
+.modal-wide { max-width: 760px; }
 
 .quick-links {
   display: flex;
@@ -1074,6 +1075,24 @@ h3 {
 }
 
 .help-panel a.hint { display: inline-block; margin-top: 0.25rem; }
+
+.view-field {
+  margin-bottom: 1.1rem;
+}
+
+.view-field-label {
+  font-weight: 700;
+  color: var(--text);
+  font-size: 0.95rem;
+  margin-bottom: 0.3rem;
+}
+
+.view-field p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
