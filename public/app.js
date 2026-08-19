@@ -1211,18 +1211,29 @@ function wireScreenshotField(ids, initial, { onError } = {}) {
   // the same clipboard read on click, for anyone who doesn't know the
   // keyboard shortcut exists or would rather click something.
   pasteBtn?.addEventListener('click', async () => {
+    if (!navigator.clipboard?.read) {
+      onError?.(new Error("This browser doesn't support reading images via the Paste button — use Ctrl+V instead."));
+      return;
+    }
     try {
       const clipboardItems = await navigator.clipboard.read();
       const item = clipboardItems.find((ci) => ci.types.some((t) => t.startsWith('image/')));
       if (!item) {
-        onError?.(new Error('No image found on the clipboard — copy a screenshot first.'));
+        onError?.(new Error('No image found on the clipboard — copy a screenshot first, then click Paste.'));
         return;
       }
       const type = item.types.find((t) => t.startsWith('image/'));
       const blob = await item.getType(type);
       await handleFile(new File([blob], 'pasted-image', { type }));
-    } catch {
-      onError?.(new Error("Couldn't read the clipboard — try Ctrl+V instead, or check your browser's clipboard permission."));
+    } catch (err) {
+      // Most browsers require an explicit, per-site "Clipboard" permission
+      // grant for read-via-button (unlike a native Ctrl+V paste event, which
+      // needs no permission at all) -- NotAllowedError means that grant was
+      // never given or was denied, which Ctrl+V sidesteps entirely.
+      const message = err?.name === 'NotAllowedError'
+        ? "Clipboard permission was denied — check this site's permissions in your browser's address bar, or just use Ctrl+V instead."
+        : "Couldn't read the clipboard — use Ctrl+V instead.";
+      onError?.(new Error(message));
     }
   });
 
@@ -1366,6 +1377,45 @@ document.getElementById('settings-logout-btn').addEventListener('click', () => {
 });
 
 document.getElementById('settings-icon-btn').addEventListener('click', () => switchToView('settings'));
+
+// ---------- Backup / Restore ----------
+// Plain navigation (not fetch+blob) so the browser handles the download
+// natively via the server's Content-Disposition header -- no JS blob
+// juggling needed for something this simple.
+document.getElementById('settings-export-btn').addEventListener('click', () => {
+  window.location.href = '/api/backup/export';
+});
+
+document.getElementById('settings-import-btn').addEventListener('click', () => {
+  document.getElementById('settings-import-file').click();
+});
+
+document.getElementById('settings-import-file').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+
+  const statusEl = document.getElementById('settings-backup-status');
+  if (!confirm('Importing will replace every trade and journal entry currently in this app with the data from this file. This cannot be undone. Continue?')) {
+    return;
+  }
+
+  statusEl.textContent = 'Importing…';
+  statusEl.className = 'status-msg';
+  try {
+    const payload = JSON.parse(await file.text());
+    const result = await api('/api/backup/import', { method: 'POST', body: JSON.stringify(payload) });
+    const parts = [];
+    if (result.tradesImported != null) parts.push(`${result.tradesImported} trades`);
+    if (result.journalEntriesImported != null) parts.push(`${result.journalEntriesImported} journal entries`);
+    statusEl.textContent = `Imported ${parts.join(' and ')}.`;
+    statusEl.classList.add('success');
+    loadDashboard();
+  } catch (err) {
+    statusEl.textContent = err instanceof SyntaxError ? "That file isn't valid JSON — is it a Trading Journal export?" : err.message;
+    statusEl.classList.add('error');
+  }
+});
 document.getElementById('account-widget').addEventListener('click', () => switchToView('settings'));
 
 // ---------- Guided tour ----------

@@ -426,6 +426,16 @@
         <p class="hint">Logging out clears your name and photo from this browser and brings back the "Create Account" option above; your trades and journal entries are untouched.</p>
         <button type="button" id="settings-logout-btn" class="btn-danger">Log Out</button>
       </div>
+
+      <h3>Backup &amp; Restore</h3>
+      <p class="hint warning-hint">⚠️ Your trades and journal entries live only in this local database file — nothing is synced or backed up anywhere else. If you update, reinstall, or move this app to a new folder or computer, you will lose everything currently logged unless you export a backup first. Nothing sensitive is in this file (no passwords, no wallet keys, no real account), so it's safe to keep a copy anywhere convenient.</p>
+      <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+        <button type="button" id="settings-export-btn" class="btn-secondary">Export My Data</button>
+        <button type="button" id="settings-import-btn" class="btn-secondary">Import Data</button>
+        <input type="file" id="settings-import-file" accept="application/json" class="hidden">
+      </div>
+      <p class="hint">Importing replaces every trade and journal entry currently in this app with whatever is in the file — it's meant for restoring a backup into a fresh copy of the app, not merging two sets of data together.</p>
+      <p id="settings-backup-status" class="status-msg"></p>
     </section>
   </main>
 

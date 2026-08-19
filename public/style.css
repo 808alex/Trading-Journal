@@ -377,6 +377,14 @@ input:focus, select:focus, textarea:focus {
   color: var(--text-dim);
 }
 
+.warning-hint {
+  color: var(--yellow);
+  border: 1px solid var(--yellow);
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+  margin: 0 0 1rem;
+}
+
 .hint-inline {
   font-weight: 400;
   font-size: 0.8rem;
