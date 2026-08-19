@@ -303,6 +303,7 @@ function renderTradeCard(t) {
       <span class="coin">${escapeHtml(t.coin_name)}
         <span class="badge status-${t.status}">${t.status}</span>
         ${t.grade ? `<span class="badge grade-${t.grade}">${t.grade}</span>` : ''}
+        ${t.screenshot ? '<span class="badge" title="Has screenshot">📷</span>' : ''}
       </span>
       <span class="${pnlClass(t.pnl_amount)}">${fmtMoney(t.pnl_amount)} (${fmtPct(t.pnl_percent)})</span>
     </div>
@@ -415,6 +416,18 @@ async function openTradeModal(id) {
     </div>
 
     <div class="field">
+      <label>Screenshot</label>
+      <div id="m-screenshot-preview" class="screenshot-preview">
+        ${t.screenshot ? `<img id="m-screenshot-img" src="${t.screenshot}" alt="Trade screenshot">` : '<p class="hint">No screenshot attached.</p>'}
+      </div>
+      <input type="file" id="m-screenshot-file" accept="image/*" class="hidden">
+      <div style="display:flex; gap:0.6rem; margin-top:0.4rem;">
+        <button type="button" id="m-screenshot-upload" class="btn-secondary">${t.screenshot ? 'Replace' : 'Upload'} Screenshot</button>
+        <button type="button" id="m-screenshot-remove" class="btn-danger ${t.screenshot ? '' : 'hidden'}">Remove</button>
+      </div>
+    </div>
+
+    <div class="field">
       <label>Thesis — why did you buy? ${t.status === 'open' ? '(required to close)' : ''}</label>
       <textarea id="m-thesis" rows="2">${t.thesis ?? ''}</textarea>
     </div>
@@ -465,6 +478,42 @@ async function openTradeModal(id) {
   modal.classList.remove('hidden');
   initValueToggles(modalBody);
 
+  let screenshotData = t.screenshot ?? null;
+
+  function renderScreenshotPreview() {
+    const previewEl = document.getElementById('m-screenshot-preview');
+    const uploadBtn = document.getElementById('m-screenshot-upload');
+    const removeBtn = document.getElementById('m-screenshot-remove');
+    previewEl.innerHTML = screenshotData
+      ? `<img id="m-screenshot-img" src="${screenshotData}" alt="Trade screenshot">`
+      : '<p class="hint">No screenshot attached.</p>';
+    uploadBtn.textContent = screenshotData ? 'Replace Screenshot' : 'Upload Screenshot';
+    removeBtn.classList.toggle('hidden', !screenshotData);
+    if (screenshotData) {
+      document.getElementById('m-screenshot-img').addEventListener('click', () => openScreenshotFullSize(screenshotData));
+    }
+  }
+
+  document.getElementById('m-screenshot-upload').addEventListener('click', () => {
+    document.getElementById('m-screenshot-file').click();
+  });
+  document.getElementById('m-screenshot-file').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      screenshotData = await resizeScreenshotToDataUrl(file);
+      renderScreenshotPreview();
+    } catch (err) {
+      statusEl.textContent = err.message;
+      statusEl.className = 'status-msg error';
+    }
+  });
+  document.getElementById('m-screenshot-remove').addEventListener('click', () => {
+    screenshotData = null;
+    renderScreenshotPreview();
+  });
+  renderScreenshotPreview();
+
   function gatherFields() {
     const exit = readToggledValue(modalBody, 'm-exit', 'm-exit_value');
     return {
@@ -478,6 +527,7 @@ async function openTradeModal(id) {
       thoughts_during: document.getElementById('m-thoughts_during').value || null,
       lesson_learned: document.getElementById('m-lesson_learned').value || null,
       grade: document.getElementById('m-grade').value || null,
+      screenshot: screenshotData,
     };
   }
 
@@ -1024,6 +1074,40 @@ document.getElementById('settings-username-save').addEventListener('click', save
 usernameInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') saveUsername();
 });
+
+// Downsizes a trade screenshot before it goes in the request body -- charts
+// don't need to be pixel-perfect for journal review, and keeping the data
+// URL small keeps trade rows (and the SQLite file) from bloating.
+function resizeScreenshotToDataUrl(file, maxWidth = 900) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxWidth / img.width);
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.75));
+      };
+      img.onerror = () => reject(new Error('Could not read that image.'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('Could not read that file.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+// Data: URLs can't be opened directly in a new tab in most browsers, so
+// convert to a blob: URL first for the full-size click-to-view.
+function openScreenshotFullSize(dataUrl) {
+  fetch(dataUrl)
+    .then((r) => r.blob())
+    .then((blob) => window.open(URL.createObjectURL(blob), '_blank'));
+}
 
 // Crops to a centered square and downsizes before storing, so a multi-MB
 // photo doesn't get shoved whole into localStorage.

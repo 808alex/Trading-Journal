@@ -58,6 +58,7 @@ function ensureColumn(table, column, definition) {
 
 ensureColumn('trades', 'contract_address', "TEXT NOT NULL DEFAULT ''");
 ensureColumn('trades', 'fees', 'REAL NOT NULL DEFAULT 0');
+ensureColumn('trades', 'screenshot', 'TEXT');
 ensureColumn('journal_entries', 'title', 'TEXT');
 ensureColumn('journal_entries', 'starred', 'INTEGER NOT NULL DEFAULT 0');
 

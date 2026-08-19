@@ -89,6 +89,7 @@ router.post('/', (req, res) => {
     lesson_learned,
     grade,
     status,
+    screenshot,
   } = req.body;
 
   if (!coin_name || !coin_name.trim()) {
@@ -121,8 +122,8 @@ router.post('/', (req, res) => {
       `INSERT INTO trades
         (coin_name, contract_address, entry_price, entry_mcap, exit_price, exit_mcap,
          amount_invested, percent_risked, fees, thesis, emotional_state,
-         followed_plan, thoughts_during, lesson_learned, grade, status, closed_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+         followed_plan, thoughts_during, lesson_learned, grade, status, closed_at, screenshot)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       coin_name.trim(),
@@ -141,7 +142,8 @@ router.post('/', (req, res) => {
       lesson_learned ?? null,
       grade ?? null,
       closing ? 'closed' : 'open',
-      closing ? new Date().toISOString() : null
+      closing ? new Date().toISOString() : null,
+      screenshot ?? null
     );
 
   const row = db.prepare('SELECT * FROM trades WHERE id = ?').get(result.lastInsertRowid);
@@ -169,6 +171,7 @@ router.put('/:id', (req, res) => {
     'thoughts_during',
     'lesson_learned',
     'grade',
+    'screenshot',
   ];
 
   const next = { ...existing };
@@ -192,7 +195,7 @@ router.put('/:id', (req, res) => {
       coin_name = ?, contract_address = ?, entry_price = ?, entry_mcap = ?, exit_price = ?, exit_mcap = ?,
       amount_invested = ?, percent_risked = ?, fees = ?, thesis = ?, emotional_state = ?,
       followed_plan = ?, thoughts_during = ?, lesson_learned = ?, grade = ?,
-      status = ?, closed_at = ?
+      status = ?, closed_at = ?, screenshot = ?
      WHERE id = ?`
   ).run(
     next.coin_name,
@@ -212,6 +215,7 @@ router.put('/:id', (req, res) => {
     next.grade ?? null,
     closing ? 'closed' : existing.status,
     closing ? new Date().toISOString() : existing.closed_at,
+    next.screenshot ?? null,
     req.params.id
   );
 
