@@ -38,60 +38,70 @@ function totalProfit(closed) {
   return closed.reduce((total, t) => total + (t.pnl_amount || 0), 0);
 }
 
+// Descriptions are written for someone who has never seen this app before --
+// every badge should be understandable without already knowing what it
+// means, not just a title someone has to guess at.
 const CATEGORIES = [
   {
     name: 'Getting Started',
     badges: [
-      { id: 'first_trade_closed', title: 'First Trade Closed', description: 'Close your first trade.', icon: '🏁', check: (ctx) => ctx.closed.length >= 1 },
-      { id: 'first_journal', title: 'First Journal Entry', description: 'Write your first journal entry.', icon: '📔', check: (ctx) => ctx.journalEntries.length >= 1 },
-      { id: 'first_screenshot', title: 'First Screenshot', description: 'Attach a screenshot to a trade.', icon: '📷', check: (ctx) => ctx.trades.some((t) => !!t.screenshot) },
+      { id: 'first_trade_closed', title: 'First Trade Closed', description: 'Close your first trade — add an exit price and grade to an open trade.', icon: '🏁', check: (ctx) => ctx.closed.length >= 1 },
+      { id: 'first_journal', title: 'First Journal Entry', description: 'Write your first daily journal entry.', icon: '📔', check: (ctx) => ctx.journalEntries.length >= 1 },
+      { id: 'first_screenshot', title: 'First Screenshot', description: 'Attach a screenshot to any trade.', icon: '📷', check: (ctx) => ctx.trades.some((t) => !!t.screenshot) },
     ],
   },
   {
     name: 'Trade Volume',
     badges: [
-      { id: 'trades_1', title: '1 Trade Logged', description: 'Log your first trade.', icon: '🎬', check: (ctx) => ctx.trades.length >= 1 },
-      { id: 'trades_5', title: '5 Trades Logged', description: 'Log 5 trades.', icon: '🌱', check: (ctx) => ctx.trades.length >= 5 },
-      { id: 'trades_10', title: '10 Trades Logged', description: 'Log 10 trades.', icon: '📈', check: (ctx) => ctx.trades.length >= 10 },
-      { id: 'trades_25', title: '25 Trades Logged', description: 'Log 25 trades.', icon: '⛏️', check: (ctx) => ctx.trades.length >= 25 },
-      { id: 'trades_50', title: '50 Trades Logged', description: 'Log 50 trades.', icon: '🗻', check: (ctx) => ctx.trades.length >= 50 },
-      { id: 'trades_100', title: '100 Trades Logged', description: 'Log 100 trades.', icon: '🎖️', check: (ctx) => ctx.trades.length >= 100 },
+      { id: 'trades_1', title: '1 Trade Logged', description: 'Log your first trade (open or closed).', icon: '🎬', check: (ctx) => ctx.trades.length >= 1 },
+      { id: 'trades_5', title: '5 Trades Logged', description: 'Log 5 trades total (open or closed).', icon: '🌱', check: (ctx) => ctx.trades.length >= 5 },
+      { id: 'trades_10', title: '10 Trades Logged', description: 'Log 10 trades total (open or closed).', icon: '📈', check: (ctx) => ctx.trades.length >= 10 },
+      { id: 'trades_25', title: '25 Trades Logged', description: 'Log 25 trades total (open or closed).', icon: '⛏️', check: (ctx) => ctx.trades.length >= 25 },
+      { id: 'trades_50', title: '50 Trades Logged', description: 'Log 50 trades total (open or closed).', icon: '🗻', check: (ctx) => ctx.trades.length >= 50 },
+      { id: 'trades_100', title: '100 Trades Logged', description: 'Log 100 trades total (open or closed).', icon: '🎖️', check: (ctx) => ctx.trades.length >= 100 },
+      { id: 'trades_250', title: '250 Trades Logged', description: 'Log 250 trades total (open or closed).', icon: '🏔️', check: (ctx) => ctx.trades.length >= 250 },
+      { id: 'trades_500', title: '500 Trades Logged', description: 'Log 500 trades total (open or closed).', icon: '🗿', check: (ctx) => ctx.trades.length >= 500 },
+      { id: 'trades_1000', title: '1,000 Trades Logged', description: 'Log 1,000 trades total (open or closed).', icon: '💯', check: (ctx) => ctx.trades.length >= 1000 },
     ],
   },
   {
     name: 'PNL',
     badges: [
-      { id: 'first_win', title: 'First Win', description: 'Close your first profitable trade.', icon: '✅', check: (ctx) => ctx.closed.some((t) => t.pnl_amount > 0) },
-      { id: 'double_up', title: 'Double Up', description: 'Hit a 2x (100%+) on a closed trade.', icon: '🚀', check: (ctx) => ctx.closed.some((t) => t.pnl_percent != null && t.pnl_percent >= 100) },
-      { id: 'high_roller', title: 'High Roller', description: 'Hit a 5x (400%+) on a closed trade.', icon: '💎', check: (ctx) => ctx.closed.some((t) => t.pnl_percent != null && t.pnl_percent >= 400) },
-      { id: 'moonshot', title: 'Moonshot', description: 'Hit a 10x (900%+) on a closed trade.', icon: '🌕', check: (ctx) => ctx.closed.some((t) => t.pnl_percent != null && t.pnl_percent >= 900) },
-      { id: 'profit_5', title: '+5 SOL Total Profit', description: 'Reach +5 SOL in total profit across all closed trades.', icon: '💰', check: (ctx) => totalProfit(ctx.closed) >= 5 },
-      { id: 'profit_20', title: '+20 SOL Total Profit', description: 'Reach +20 SOL in total profit across all closed trades.', icon: '🏆', check: (ctx) => totalProfit(ctx.closed) >= 20 },
-      { id: 'profit_50', title: '+50 SOL Total Profit', description: 'Reach +50 SOL in total profit across all closed trades.', icon: '👑', check: (ctx) => totalProfit(ctx.closed) >= 50 },
+      { id: 'first_win', title: 'First Win', description: 'Close a trade with a positive P&L — any amount of profit counts.', icon: '✅', check: (ctx) => ctx.closed.some((t) => t.pnl_amount > 0) },
+      { id: 'double_up', title: 'Double Up', description: 'Close a trade that returned 2x or more (100%+ profit) on your entry.', icon: '🚀', check: (ctx) => ctx.closed.some((t) => t.pnl_percent != null && t.pnl_percent >= 100) },
+      { id: 'high_roller', title: 'High Roller', description: 'Close a trade that returned 5x or more (400%+ profit) on your entry.', icon: '💎', check: (ctx) => ctx.closed.some((t) => t.pnl_percent != null && t.pnl_percent >= 400) },
+      { id: 'moonshot', title: 'Moonshot', description: 'Close a trade that returned 10x or more (900%+ profit) on your entry.', icon: '🌕', check: (ctx) => ctx.closed.some((t) => t.pnl_percent != null && t.pnl_percent >= 900) },
+      { id: 'profit_5', title: '+5 SOL Total Profit', description: 'Reach +5 SOL in profit, added up across every closed trade.', icon: '💰', check: (ctx) => totalProfit(ctx.closed) >= 5 },
+      { id: 'profit_20', title: '+20 SOL Total Profit', description: 'Reach +20 SOL in profit, added up across every closed trade.', icon: '🏆', check: (ctx) => totalProfit(ctx.closed) >= 20 },
+      { id: 'profit_50', title: '+50 SOL Total Profit', description: 'Reach +50 SOL in profit, added up across every closed trade.', icon: '👑', check: (ctx) => totalProfit(ctx.closed) >= 50 },
+      { id: 'profit_100', title: '+100 SOL Total Profit', description: 'Reach +100 SOL in profit, added up across every closed trade.', icon: '💵', check: (ctx) => totalProfit(ctx.closed) >= 100 },
+      { id: 'profit_250', title: '+250 SOL Total Profit', description: 'Reach +250 SOL in profit, added up across every closed trade.', icon: '🏦', check: (ctx) => totalProfit(ctx.closed) >= 250 },
+      { id: 'profit_500', title: '+500 SOL Total Profit', description: 'Reach +500 SOL in profit, added up across every closed trade.', icon: '🐋', check: (ctx) => totalProfit(ctx.closed) >= 500 },
+      { id: 'profit_1000', title: '+1,000 SOL Total Profit', description: 'Reach +1,000 SOL in profit, added up across every closed trade.', icon: '🌌', check: (ctx) => totalProfit(ctx.closed) >= 1000 },
     ],
   },
   {
     name: 'Followed Plan',
     badges: [
-      { id: 'plan_5', title: '5 Trades On-Plan', description: "Follow your plan (marked \"Yes\") on 5 trades.", icon: '🧭', check: (ctx) => ctx.closed.filter((t) => t.followed_plan === 'yes').length >= 5 },
-      { id: 'plan_10', title: '10 Trades On-Plan', description: "Follow your plan (marked \"Yes\") on 10 trades.", icon: '🧭', check: (ctx) => ctx.closed.filter((t) => t.followed_plan === 'yes').length >= 10 },
-      { id: 'plan_25', title: '25 Trades On-Plan', description: "Follow your plan (marked \"Yes\") on 25 trades.", icon: '🧭', check: (ctx) => ctx.closed.filter((t) => t.followed_plan === 'yes').length >= 25 },
+      { id: 'plan_5', title: '5 Trades On-Plan', description: 'Mark "Did you follow your plan?" as Yes on 5 closed trades.', icon: '🧭', check: (ctx) => ctx.closed.filter((t) => t.followed_plan === 'yes').length >= 5 },
+      { id: 'plan_10', title: '10 Trades On-Plan', description: 'Mark "Did you follow your plan?" as Yes on 10 closed trades.', icon: '🧭', check: (ctx) => ctx.closed.filter((t) => t.followed_plan === 'yes').length >= 10 },
+      { id: 'plan_25', title: '25 Trades On-Plan', description: 'Mark "Did you follow your plan?" as Yes on 25 closed trades.', icon: '🧭', check: (ctx) => ctx.closed.filter((t) => t.followed_plan === 'yes').length >= 25 },
     ],
   },
   {
     name: 'Grade',
     badges: [
-      { id: 'grade_a_5', title: '5 Grade-A Trades', description: 'Grade 5 trades an A.', icon: '🧘', check: (ctx) => ctx.closed.filter((t) => t.grade === 'A').length >= 5 },
-      { id: 'grade_a_10', title: '10 Grade-A Trades', description: 'Grade 10 trades an A.', icon: '🧘', check: (ctx) => ctx.closed.filter((t) => t.grade === 'A').length >= 10 },
-      { id: 'grade_a_25', title: '25 Grade-A Trades', description: 'Grade 25 trades an A.', icon: '🧘', check: (ctx) => ctx.closed.filter((t) => t.grade === 'A').length >= 25 },
+      { id: 'grade_a_5', title: '5 Grade-A Trades', description: 'Give 5 closed trades a grade of A (followed your thesis and plan, regardless of outcome).', icon: '🧘', check: (ctx) => ctx.closed.filter((t) => t.grade === 'A').length >= 5 },
+      { id: 'grade_a_10', title: '10 Grade-A Trades', description: 'Give 10 closed trades a grade of A.', icon: '🧘', check: (ctx) => ctx.closed.filter((t) => t.grade === 'A').length >= 10 },
+      { id: 'grade_a_25', title: '25 Grade-A Trades', description: 'Give 25 closed trades a grade of A.', icon: '🧘', check: (ctx) => ctx.closed.filter((t) => t.grade === 'A').length >= 25 },
     ],
   },
   {
     name: 'Journal',
     badges: [
-      { id: 'journal_5', title: '5 Journal Entries', description: 'Write 5 journal entries.', icon: '📖', check: (ctx) => ctx.journalEntries.length >= 5 },
-      { id: 'journal_10', title: '10 Journal Entries', description: 'Write 10 journal entries.', icon: '📚', check: (ctx) => ctx.journalEntries.length >= 10 },
-      { id: 'journal_25', title: '25 Journal Entries', description: 'Write 25 journal entries.', icon: '🗂️', check: (ctx) => ctx.journalEntries.length >= 25 },
+      { id: 'journal_5', title: '5 Journal Entries', description: "Write 5 journal entries -- any 5 days, they don't need to be consecutive.", icon: '📖', check: (ctx) => ctx.journalEntries.length >= 5 },
+      { id: 'journal_10', title: '10 Journal Entries', description: "Write 10 journal entries -- any 10 days, they don't need to be consecutive.", icon: '📚', check: (ctx) => ctx.journalEntries.length >= 10 },
+      { id: 'journal_25', title: '25 Journal Entries', description: "Write 25 journal entries -- any 25 days, they don't need to be consecutive.", icon: '🗂️', check: (ctx) => ctx.journalEntries.length >= 25 },
     ],
   },
 ];

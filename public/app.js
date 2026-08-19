@@ -392,6 +392,12 @@ document.getElementById('filter-search').addEventListener('input', () => {
 const modal = document.getElementById('trade-modal');
 const modalBody = document.getElementById('modal-body');
 
+// Points at whichever modal's screenshot field is currently wired up, so
+// the page-level paste listener knows where to route a pasted image while
+// the modal is open. Only consulted while the modal is visible, so a stale
+// reference from a previously-closed modal is harmless.
+let currentModalScreenshot = null;
+
 document.getElementById('modal-close').addEventListener('click', () => modal.classList.add('hidden'));
 modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
 
@@ -492,6 +498,7 @@ async function openTradeModal(id) {
     t.screenshot ?? null,
     { onError: (err) => { statusEl.textContent = err.message; statusEl.className = 'status-msg error'; } }
   );
+  currentModalScreenshot = modalScreenshot;
 
   function gatherFields() {
     const exit = readToggledValue(modalBody, 'm-exit', 'm-exit_value');
@@ -1005,9 +1012,12 @@ async function loadAchievements() {
           ${cat.badges
             .map(
               (b) => `
-                <div class="badge-row ${b.earned ? 'earned' : 'locked'}" title="${escapeHtml(b.description)}">
+                <div class="badge-row ${b.earned ? 'earned' : 'locked'}">
                   <span class="badge-row-icon">${b.earned ? b.icon : '🔒'}</span>
-                  <span class="badge-row-title">${escapeHtml(b.title)}</span>
+                  <div class="badge-row-text">
+                    <span class="badge-row-title">${escapeHtml(b.title)}</span>
+                    <span class="badge-row-desc">${escapeHtml(b.description)}</span>
+                  </div>
                 </div>
               `
             )
@@ -1127,17 +1137,36 @@ function resizeScreenshotToDataUrl(file, maxWidth = 900) {
   });
 }
 
-// Data: URLs can't be opened directly in a new tab in most browsers, so
-// convert to a blob: URL first for the full-size click-to-view.
+// Full-size click-to-view opens an in-page lightbox rather than a new tab --
+// a condensed thumbnail can hide small text/numbers on a chart, so this is
+// the way to actually read one.
+const screenshotLightbox = document.getElementById('screenshot-lightbox');
+const screenshotLightboxImg = document.getElementById('screenshot-lightbox-img');
+
 function openScreenshotFullSize(dataUrl) {
-  fetch(dataUrl)
-    .then((r) => r.blob())
-    .then((blob) => window.open(URL.createObjectURL(blob), '_blank'));
+  screenshotLightboxImg.src = dataUrl;
+  screenshotLightbox.classList.remove('hidden');
 }
+
+function closeScreenshotLightbox() {
+  screenshotLightbox.classList.add('hidden');
+  screenshotLightboxImg.src = '';
+}
+
+document.getElementById('screenshot-lightbox-close').addEventListener('click', closeScreenshotLightbox);
+screenshotLightbox.addEventListener('click', (e) => {
+  if (e.target === screenshotLightbox) closeScreenshotLightbox();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !screenshotLightbox.classList.contains('hidden')) closeScreenshotLightbox();
+});
 
 // Shared upload/preview/remove wiring for a trade screenshot field -- used
 // by both the Log Trade form (attach while logging) and the trade edit/close
 // modal (attach or replace later), so there's one code path either way.
+// handleFile() is also exposed so a page-level paste listener (for pasting
+// a Snipping Tool screenshot straight from the clipboard) can feed whichever
+// field is currently on screen through the exact same upload path.
 function wireScreenshotField(ids, initial, { onError } = {}) {
   let data = initial;
   const previewEl = document.getElementById(ids.previewId);
@@ -1148,16 +1177,14 @@ function wireScreenshotField(ids, initial, { onError } = {}) {
   function render() {
     previewEl.innerHTML = data
       ? `<img src="${data}" alt="Trade screenshot">`
-      : '<p class="hint">No screenshot attached.</p>';
+      : '<p class="hint">No screenshot attached. You can also just paste (Ctrl+V) an image here.</p>';
     uploadBtn.textContent = data ? 'Replace Screenshot' : 'Upload Screenshot';
     removeBtn.classList.toggle('hidden', !data);
     const img = previewEl.querySelector('img');
     if (img) img.addEventListener('click', () => openScreenshotFullSize(data));
   }
 
-  uploadBtn.addEventListener('click', () => fileInput.click());
-  fileInput.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
+  async function handleFile(file) {
     if (!file) return;
     try {
       data = await resizeScreenshotToDataUrl(file);
@@ -1165,7 +1192,10 @@ function wireScreenshotField(ids, initial, { onError } = {}) {
     } catch (err) {
       onError?.(err);
     }
-  });
+  }
+
+  uploadBtn.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
   removeBtn.addEventListener('click', () => {
     data = null;
     render();
@@ -1175,6 +1205,7 @@ function wireScreenshotField(ids, initial, { onError } = {}) {
 
   return {
     get: () => data,
+    handleFile,
     reset: (newInitial = null) => {
       data = newInitial;
       fileInput.value = '';
@@ -1182,6 +1213,28 @@ function wireScreenshotField(ids, initial, { onError } = {}) {
     },
   };
 }
+
+// A snip from Snipping Tool (or any screenshot tool) lands on the clipboard
+// as image data with no accompanying text, so Ctrl+V anywhere on the page
+// is unambiguous -- if there's an image on the clipboard, it's for whichever
+// screenshot field is currently relevant, and we don't touch normal text
+// paste at all (that clipboard has no image item, so this just returns).
+document.addEventListener('paste', (e) => {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  const imageItem = [...items].find((item) => item.type.startsWith('image/'));
+  if (!imageItem) return;
+
+  const target = !modal.classList.contains('hidden')
+    ? currentModalScreenshot
+    : document.getElementById('view-add').classList.contains('active')
+      ? addScreenshot
+      : null;
+  if (!target) return;
+
+  e.preventDefault();
+  target.handleFile(imageItem.getAsFile());
+});
 
 // Crops to a centered square and downsizes before storing, so a multi-MB
 // photo doesn't get shoved whole into localStorage.
@@ -1456,6 +1509,28 @@ settingsSolPriceInput.addEventListener('input', () => {
   else delete solPrices[defaultCurrency];
   localStorage.setItem('solPrices', JSON.stringify(solPrices));
   window.dispatchEvent(new Event('currencychange'));
+});
+
+// Fetches SOL's current price once (from DexScreener, converted into every
+// supported currency server-side) and fills in solPrices for all of them at
+// once -- SOL barely moves minute-to-minute, so this doesn't need to be a
+// live feed, just a one-click way to avoid typing a rate in by hand.
+document.getElementById('settings-sol-price-fetch').addEventListener('click', async () => {
+  const statusEl = document.getElementById('settings-sol-price-status');
+  statusEl.textContent = 'Fetching SOL price…';
+  statusEl.className = 'status-msg';
+  try {
+    const prices = await api('/api/solprice');
+    solPrices = { ...solPrices, ...prices };
+    localStorage.setItem('solPrices', JSON.stringify(solPrices));
+    updateCurrencyPriceField();
+    statusEl.textContent = `Fetched — 1 SOL = ${CURRENCY_SYMBOLS.usd}${prices.usd.toFixed(2)} (and set for every currency above).`;
+    statusEl.classList.add('success');
+    window.dispatchEvent(new Event('currencychange'));
+  } catch (err) {
+    statusEl.textContent = err.message;
+    statusEl.classList.add('error');
+  }
 });
 
 // Re-render whatever's currently on screen when the currency setting

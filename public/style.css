@@ -734,9 +734,36 @@ h3 {
   padding: 0.55rem 0.75rem;
 }
 .badge-row + .badge-row { border-top: 1px solid var(--border); }
-.badge-row-icon { font-size: 1.3rem; width: 1.6rem; text-align: center; }
+.badge-row-icon { font-size: 1.3rem; width: 1.6rem; text-align: center; flex-shrink: 0; }
+.badge-row-text { display: flex; flex-direction: column; gap: 0.1rem; }
 .badge-row-title { font-size: 0.9rem; }
-.badge-row.locked { opacity: 0.45; }
+.badge-row-desc { font-size: 0.78rem; color: var(--text-dim); }
+.badge-row.locked { opacity: 0.5; }
+
+.screenshot-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(4, 3, 8, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  cursor: zoom-out;
+}
+.screenshot-lightbox.hidden { display: none; }
+.screenshot-lightbox img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 6px;
+  cursor: default;
+}
+.screenshot-lightbox .modal-close-btn {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+}
 
 .screenshot-preview {
   border: 1px solid var(--border);

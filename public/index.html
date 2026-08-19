@@ -389,7 +389,7 @@
       </div>
 
       <h3>Currency</h3>
-      <p class="hint">SOL is always available everywhere P&amp;L is shown. Pick a default fiat currency here and its rate, then use the SOL/{currency} switch on Total P&amp;L and the Calendar to flip between the two.</p>
+      <p class="hint">SOL is always available everywhere P&amp;L is shown. Pick a default fiat currency here and its rate, then use the SOL/{currency} switch on Total P&amp;L and the Calendar to flip between the two. "Auto-fetch" pulls the current SOL price from DexScreener and fills it in for USD, GBP, EUR, and JPY all at once — no need to type in a rate by hand or repeat this per currency.</p>
       <div class="field-row">
         <div class="field">
           <label for="settings-currency">Default fiat currency</label>
@@ -402,7 +402,11 @@
         </div>
         <div class="field">
           <label for="settings-sol-price" id="settings-sol-price-label">SOL price</label>
-          <input type="number" step="any" id="settings-sol-price" class="sol-price-input">
+          <div style="display:flex; gap:0.5rem;">
+            <input type="number" step="any" id="settings-sol-price" class="sol-price-input">
+            <button type="button" id="settings-sol-price-fetch" class="btn-secondary">Auto-fetch</button>
+          </div>
+          <p id="settings-sol-price-status" class="status-msg"></p>
         </div>
       </div>
 
@@ -429,6 +433,12 @@
       <button id="modal-close" class="modal-close-btn">&times;</button>
       <div id="modal-body"></div>
     </div>
+  </div>
+
+  <!-- SCREENSHOT LIGHTBOX -->
+  <div id="screenshot-lightbox" class="screenshot-lightbox hidden">
+    <button id="screenshot-lightbox-close" class="modal-close-btn">&times;</button>
+    <img id="screenshot-lightbox-img" src="" alt="Trade screenshot, full size">
   </div>
 
   <!-- CALENDAR MODAL -->
