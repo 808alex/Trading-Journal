@@ -78,6 +78,7 @@ body {
   color: var(--text);
   position: relative;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 body::before {
@@ -345,6 +346,18 @@ h2 { margin-top: 0; }
 .field-row {
   display: flex;
   gap: 1rem;
+}
+
+/* Side-by-side fields (coin name / contract address, amount / % risked,
+   etc.) don't have room to sit next to each other on a phone-width
+   screen -- each input's intrinsic min-width forced the row wider than
+   the viewport instead of shrinking, which is what caused horizontal
+   scrolling on mobile. Stacking them removes that forced minimum. */
+@media (max-width: 640px) {
+  .field-row {
+    flex-direction: column;
+    gap: 0;
+  }
 }
 
 .field-row .field { flex: 1; }
