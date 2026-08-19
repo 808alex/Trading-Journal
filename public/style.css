@@ -700,26 +700,43 @@ h3 {
 
 .hidden { display: none !important; }
 
-.badge-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 0.6rem;
+.streak-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
   margin-bottom: 1.5rem;
 }
-.badge-tile {
+.streak-chip {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.75rem 0.5rem;
+  gap: 0.15rem;
+  padding: 0.6rem 1.1rem;
   border: 1px solid var(--border);
   border-radius: 8px;
-  text-align: center;
+  min-width: 80px;
 }
-.badge-tile-icon { font-size: 1.8rem; }
-.badge-tile-title { font-size: 0.8rem; }
-.badge-tile.earned { border-color: var(--accent); }
-.badge-tile.locked { opacity: 0.45; }
+.streak-fire-row { display: flex; align-items: baseline; gap: 0.25rem; }
+.streak-fire { font-size: 1.2rem; }
+.streak-value { font-size: 1.3rem; font-weight: 600; }
+.streak-label { font-size: 0.75rem; color: var(--text-dim); }
+
+.badge-list {
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.badge-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.75rem;
+}
+.badge-row + .badge-row { border-top: 1px solid var(--border); }
+.badge-row-icon { font-size: 1.3rem; width: 1.6rem; text-align: center; }
+.badge-row-title { font-size: 0.9rem; }
+.badge-row.locked { opacity: 0.45; }
 
 .screenshot-preview {
   border: 1px solid var(--border);

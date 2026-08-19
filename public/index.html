@@ -33,6 +33,7 @@
     <button class="tab-btn" data-view="list">Trade List</button>
     <button class="tab-btn" data-view="totals">Total P&amp;L</button>
     <button class="tab-btn" data-view="journal">Journal</button>
+    <button class="tab-btn" data-view="achievements">Achievements</button>
     <button class="tab-btn" data-view="settings">Settings</button>
   </nav>
 
@@ -96,12 +97,10 @@
         <button class="quick-link-btn" data-view="list">Trade List</button>
         <button class="quick-link-btn" data-view="totals">Total P&amp;L</button>
         <button class="quick-link-btn" data-view="journal">Journal</button>
+        <button class="quick-link-btn" data-view="achievements">Achievements</button>
       </div>
 
       <p id="dashboard-error" class="status-msg error hidden"></p>
-
-      <h3>Achievements <span id="dashboard-achievements-count" class="hint-inline"></span></h3>
-      <div id="dashboard-achievements" class="badge-grid"></div>
 
       <div id="dashboard-bullets" class="totals-summary"></div>
 
@@ -171,6 +170,18 @@
         <div class="field">
           <label for="thesis">Thesis — why are you buying? <span class="hint-inline">(required to close)</span></label>
           <textarea id="thesis" name="thesis" rows="2"></textarea>
+        </div>
+
+        <div class="field">
+          <label>Screenshot (optional)</label>
+          <div id="add-screenshot-preview" class="screenshot-preview">
+            <p class="hint">No screenshot attached.</p>
+          </div>
+          <input type="file" id="add-screenshot-file" accept="image/*" class="hidden">
+          <div style="display:flex; gap:0.6rem; margin-top:0.4rem;">
+            <button type="button" id="add-screenshot-upload" class="btn-secondary">Upload Screenshot</button>
+            <button type="button" id="add-screenshot-remove" class="btn-danger hidden">Remove</button>
+          </div>
         </div>
 
         <hr class="section-divider">
@@ -333,6 +344,19 @@
       <h3>Past Entries</h3>
       <p id="journal-list-error" class="status-msg error hidden"></p>
       <div id="journal-list" class="trade-list"></div>
+    </section>
+
+    <!-- ACHIEVEMENTS VIEW -->
+    <section id="view-achievements" class="view">
+      <h2>Achievements <span id="achievements-count" class="hint-inline"></span></h2>
+      <p class="hint">Milestones tracked automatically from your trades and journal entries. Hover any badge for what it takes to earn it.</p>
+
+      <p id="achievements-error" class="status-msg error hidden"></p>
+
+      <h3>Streaks</h3>
+      <div id="achievements-streaks" class="streak-row"></div>
+
+      <div id="achievements-categories"></div>
     </section>
 
     <!-- SETTINGS VIEW -->

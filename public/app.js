@@ -71,6 +71,7 @@ function switchToView(viewName) {
   if (viewName === 'totals') loadTotals();
   if (viewName === 'journal') loadJournalList();
   if (viewName === 'dashboard') loadDashboard();
+  if (viewName === 'achievements') loadAchievements();
 }
 
 document.getElementById('back-btn').addEventListener('click', () => switchToView('dashboard'));
@@ -202,6 +203,12 @@ function escapeHtml(str) {
 const addForm = document.getElementById('add-trade-form');
 const addStatus = document.getElementById('add-trade-status');
 
+const addScreenshot = wireScreenshotField(
+  { previewId: 'add-screenshot-preview', uploadBtnId: 'add-screenshot-upload', removeBtnId: 'add-screenshot-remove', fileId: 'add-screenshot-file' },
+  null,
+  { onError: (err) => { addStatus.textContent = err.message; addStatus.classList.add('error'); } }
+);
+
 // ---------- DexScreener coin lookup ----------
 // Only confirms the coin name -- price/mcap are NOT auto-filled. DexScreener's
 // price data runs well behind a live chart (confirmed ~30s lag against a
@@ -269,6 +276,7 @@ addForm.addEventListener('submit', async (e) => {
     lesson_learned: document.getElementById('lesson_learned').value || null,
     grade: document.getElementById('grade').value || null,
     status,
+    screenshot: addScreenshot.get(),
   };
 
   try {
@@ -280,6 +288,7 @@ addForm.addEventListener('submit', async (e) => {
       group.querySelectorAll('.toggle-btn').forEach((b) => b.classList.remove('active'));
       group.querySelector('.toggle-btn').classList.add('active');
     });
+    addScreenshot.reset();
     dexscreenerLastAddress = null;
     dexscreenerStatus.textContent = '';
   } catch (err) {
@@ -478,41 +487,11 @@ async function openTradeModal(id) {
   modal.classList.remove('hidden');
   initValueToggles(modalBody);
 
-  let screenshotData = t.screenshot ?? null;
-
-  function renderScreenshotPreview() {
-    const previewEl = document.getElementById('m-screenshot-preview');
-    const uploadBtn = document.getElementById('m-screenshot-upload');
-    const removeBtn = document.getElementById('m-screenshot-remove');
-    previewEl.innerHTML = screenshotData
-      ? `<img id="m-screenshot-img" src="${screenshotData}" alt="Trade screenshot">`
-      : '<p class="hint">No screenshot attached.</p>';
-    uploadBtn.textContent = screenshotData ? 'Replace Screenshot' : 'Upload Screenshot';
-    removeBtn.classList.toggle('hidden', !screenshotData);
-    if (screenshotData) {
-      document.getElementById('m-screenshot-img').addEventListener('click', () => openScreenshotFullSize(screenshotData));
-    }
-  }
-
-  document.getElementById('m-screenshot-upload').addEventListener('click', () => {
-    document.getElementById('m-screenshot-file').click();
-  });
-  document.getElementById('m-screenshot-file').addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    try {
-      screenshotData = await resizeScreenshotToDataUrl(file);
-      renderScreenshotPreview();
-    } catch (err) {
-      statusEl.textContent = err.message;
-      statusEl.className = 'status-msg error';
-    }
-  });
-  document.getElementById('m-screenshot-remove').addEventListener('click', () => {
-    screenshotData = null;
-    renderScreenshotPreview();
-  });
-  renderScreenshotPreview();
+  const modalScreenshot = wireScreenshotField(
+    { previewId: 'm-screenshot-preview', uploadBtnId: 'm-screenshot-upload', removeBtnId: 'm-screenshot-remove', fileId: 'm-screenshot-file' },
+    t.screenshot ?? null,
+    { onError: (err) => { statusEl.textContent = err.message; statusEl.className = 'status-msg error'; } }
+  );
 
   function gatherFields() {
     const exit = readToggledValue(modalBody, 'm-exit', 'm-exit_value');
@@ -527,7 +506,7 @@ async function openTradeModal(id) {
       thoughts_during: document.getElementById('m-thoughts_during').value || null,
       lesson_learned: document.getElementById('m-lesson_learned').value || null,
       grade: document.getElementById('m-grade').value || null,
-      screenshot: screenshotData,
+      screenshot: modalScreenshot.get(),
     };
   }
 
@@ -975,20 +954,6 @@ async function loadDashboard() {
     return;
   }
 
-  const earnedCount = data.achievements.filter((a) => a.earned).length;
-  document.getElementById('dashboard-achievements-count').textContent =
-    `${earnedCount} / ${data.achievements.length} earned`;
-  document.getElementById('dashboard-achievements').innerHTML = data.achievements
-    .map(
-      (a) => `
-        <div class="badge-tile ${a.earned ? 'earned' : 'locked'}" title="${escapeHtml(a.description)}">
-          <span class="badge-tile-icon">${a.earned ? a.icon : '🔒'}</span>
-          <span class="badge-tile-title">${escapeHtml(a.title)}</span>
-        </div>
-      `
-    )
-    .join('');
-
   document.getElementById('dashboard-bullets').innerHTML =
     '<ul class="bullet-list">' + data.bullets.map((b) => `<li>${escapeHtml(b)}</li>`).join('') + '</ul>';
 
@@ -1004,6 +969,53 @@ async function loadDashboard() {
   renderCorrList('dashboard-by-emotion', data.byEmotion);
   renderCorrList('dashboard-by-risk', data.byRisk);
   renderCorrList('dashboard-by-grade', data.byGrade);
+}
+
+// ---------- Achievements ----------
+async function loadAchievements() {
+  const errorEl = document.getElementById('achievements-error');
+  let data;
+  try {
+    data = await api('/api/achievements');
+    errorEl.classList.add('hidden');
+  } catch (err) {
+    errorEl.textContent = `Couldn't load achievements: ${err.message}. Is the server running?`;
+    errorEl.classList.remove('hidden');
+    return;
+  }
+
+  document.getElementById('achievements-count').textContent = `${data.totalEarned} / ${data.totalBadges} earned`;
+
+  document.getElementById('achievements-streaks').innerHTML = data.streaks
+    .map(
+      (s) => `
+        <div class="streak-chip" title="${escapeHtml(s.label)} Streak — ${escapeHtml(s.description)} A streak counts how many times something happened back-to-back, in a row.">
+          <span class="streak-fire-row"><span class="streak-fire">🔥</span><span class="streak-value">${s.value}</span></span>
+          <span class="streak-label">${escapeHtml(s.label)}</span>
+        </div>
+      `
+    )
+    .join('');
+
+  document.getElementById('achievements-categories').innerHTML = data.categories
+    .map(
+      (cat) => `
+        <h3>${escapeHtml(cat.name)}</h3>
+        <div class="badge-list">
+          ${cat.badges
+            .map(
+              (b) => `
+                <div class="badge-row ${b.earned ? 'earned' : 'locked'}" title="${escapeHtml(b.description)}">
+                  <span class="badge-row-icon">${b.earned ? b.icon : '🔒'}</span>
+                  <span class="badge-row-title">${escapeHtml(b.title)}</span>
+                </div>
+              `
+            )
+            .join('')}
+        </div>
+      `
+    )
+    .join('');
 }
 
 // ---------- Settings ----------
@@ -1121,6 +1133,54 @@ function openScreenshotFullSize(dataUrl) {
   fetch(dataUrl)
     .then((r) => r.blob())
     .then((blob) => window.open(URL.createObjectURL(blob), '_blank'));
+}
+
+// Shared upload/preview/remove wiring for a trade screenshot field -- used
+// by both the Log Trade form (attach while logging) and the trade edit/close
+// modal (attach or replace later), so there's one code path either way.
+function wireScreenshotField(ids, initial, { onError } = {}) {
+  let data = initial;
+  const previewEl = document.getElementById(ids.previewId);
+  const uploadBtn = document.getElementById(ids.uploadBtnId);
+  const removeBtn = document.getElementById(ids.removeBtnId);
+  const fileInput = document.getElementById(ids.fileId);
+
+  function render() {
+    previewEl.innerHTML = data
+      ? `<img src="${data}" alt="Trade screenshot">`
+      : '<p class="hint">No screenshot attached.</p>';
+    uploadBtn.textContent = data ? 'Replace Screenshot' : 'Upload Screenshot';
+    removeBtn.classList.toggle('hidden', !data);
+    const img = previewEl.querySelector('img');
+    if (img) img.addEventListener('click', () => openScreenshotFullSize(data));
+  }
+
+  uploadBtn.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      data = await resizeScreenshotToDataUrl(file);
+      render();
+    } catch (err) {
+      onError?.(err);
+    }
+  });
+  removeBtn.addEventListener('click', () => {
+    data = null;
+    render();
+  });
+
+  render();
+
+  return {
+    get: () => data,
+    reset: (newInitial = null) => {
+      data = newInitial;
+      fileInput.value = '';
+      render();
+    },
+  };
 }
 
 // Crops to a centered square and downsizes before storing, so a multi-MB
