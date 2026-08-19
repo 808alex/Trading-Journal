@@ -86,6 +86,8 @@ const CATEGORIES = [
       { id: 'plan_5', title: '5 Trades On-Plan', description: 'Mark "Did you follow your plan?" as Yes on 5 closed trades.', icon: '🧭', check: (ctx) => ctx.closed.filter((t) => t.followed_plan === 'yes').length >= 5 },
       { id: 'plan_10', title: '10 Trades On-Plan', description: 'Mark "Did you follow your plan?" as Yes on 10 closed trades.', icon: '🧭', check: (ctx) => ctx.closed.filter((t) => t.followed_plan === 'yes').length >= 10 },
       { id: 'plan_25', title: '25 Trades On-Plan', description: 'Mark "Did you follow your plan?" as Yes on 25 closed trades.', icon: '🧭', check: (ctx) => ctx.closed.filter((t) => t.followed_plan === 'yes').length >= 25 },
+      { id: 'plan_50', title: '50 Trades On-Plan', description: 'Mark "Did you follow your plan?" as Yes on 50 closed trades.', icon: '🧭', check: (ctx) => ctx.closed.filter((t) => t.followed_plan === 'yes').length >= 50 },
+      { id: 'plan_100', title: '100 Trades On-Plan', description: 'Mark "Did you follow your plan?" as Yes on 100 closed trades.', icon: '🧭', check: (ctx) => ctx.closed.filter((t) => t.followed_plan === 'yes').length >= 100 },
     ],
   },
   {
@@ -94,6 +96,8 @@ const CATEGORIES = [
       { id: 'grade_a_5', title: '5 Grade-A Trades', description: 'Give 5 closed trades a grade of A (followed your thesis and plan, regardless of outcome).', icon: '🧘', check: (ctx) => ctx.closed.filter((t) => t.grade === 'A').length >= 5 },
       { id: 'grade_a_10', title: '10 Grade-A Trades', description: 'Give 10 closed trades a grade of A.', icon: '🧘', check: (ctx) => ctx.closed.filter((t) => t.grade === 'A').length >= 10 },
       { id: 'grade_a_25', title: '25 Grade-A Trades', description: 'Give 25 closed trades a grade of A.', icon: '🧘', check: (ctx) => ctx.closed.filter((t) => t.grade === 'A').length >= 25 },
+      { id: 'grade_a_50', title: '50 Grade-A Trades', description: 'Give 50 closed trades a grade of A.', icon: '🧘', check: (ctx) => ctx.closed.filter((t) => t.grade === 'A').length >= 50 },
+      { id: 'grade_a_100', title: '100 Grade-A Trades', description: 'Give 100 closed trades a grade of A.', icon: '🧘', check: (ctx) => ctx.closed.filter((t) => t.grade === 'A').length >= 100 },
     ],
   },
   {
@@ -102,6 +106,8 @@ const CATEGORIES = [
       { id: 'journal_5', title: '5 Journal Entries', description: "Write 5 journal entries -- any 5 days, they don't need to be consecutive.", icon: '📖', check: (ctx) => ctx.journalEntries.length >= 5 },
       { id: 'journal_10', title: '10 Journal Entries', description: "Write 10 journal entries -- any 10 days, they don't need to be consecutive.", icon: '📚', check: (ctx) => ctx.journalEntries.length >= 10 },
       { id: 'journal_25', title: '25 Journal Entries', description: "Write 25 journal entries -- any 25 days, they don't need to be consecutive.", icon: '🗂️', check: (ctx) => ctx.journalEntries.length >= 25 },
+      { id: 'journal_50', title: '50 Journal Entries', description: "Write 50 journal entries -- any 50 days, they don't need to be consecutive.", icon: '🗃️', check: (ctx) => ctx.journalEntries.length >= 50 },
+      { id: 'journal_100', title: '100 Journal Entries', description: "Write 100 journal entries -- any 100 days, they don't need to be consecutive.", icon: '📜', check: (ctx) => ctx.journalEntries.length >= 100 },
     ],
   },
 ];

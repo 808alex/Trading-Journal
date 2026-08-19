@@ -174,12 +174,14 @@
 
         <div class="field">
           <label>Screenshot (optional)</label>
+          <p class="hint">Tip: you can paste a screenshot straight from the clipboard with Ctrl+V, or click Paste below.</p>
           <div id="add-screenshot-preview" class="screenshot-preview">
             <p class="hint">No screenshot attached.</p>
           </div>
           <input type="file" id="add-screenshot-file" accept="image/*" class="hidden">
-          <div style="display:flex; gap:0.6rem; margin-top:0.4rem;">
+          <div style="display:flex; gap:0.6rem; margin-top:0.4rem; flex-wrap:wrap;">
             <button type="button" id="add-screenshot-upload" class="btn-secondary">Upload Screenshot</button>
+            <button type="button" id="add-screenshot-paste" class="btn-secondary">📋 Paste</button>
             <button type="button" id="add-screenshot-remove" class="btn-danger hidden">Remove</button>
           </div>
         </div>

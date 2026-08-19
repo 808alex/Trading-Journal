@@ -204,7 +204,7 @@ const addForm = document.getElementById('add-trade-form');
 const addStatus = document.getElementById('add-trade-status');
 
 const addScreenshot = wireScreenshotField(
-  { previewId: 'add-screenshot-preview', uploadBtnId: 'add-screenshot-upload', removeBtnId: 'add-screenshot-remove', fileId: 'add-screenshot-file' },
+  { previewId: 'add-screenshot-preview', uploadBtnId: 'add-screenshot-upload', removeBtnId: 'add-screenshot-remove', fileId: 'add-screenshot-file', pasteBtnId: 'add-screenshot-paste' },
   null,
   { onError: (err) => { addStatus.textContent = err.message; addStatus.classList.add('error'); } }
 );
@@ -432,12 +432,14 @@ async function openTradeModal(id) {
 
     <div class="field">
       <label>Screenshot</label>
+      <p class="hint">Tip: you can paste a screenshot straight from the clipboard with Ctrl+V, or click Paste below.</p>
       <div id="m-screenshot-preview" class="screenshot-preview">
         ${t.screenshot ? `<img id="m-screenshot-img" src="${t.screenshot}" alt="Trade screenshot">` : '<p class="hint">No screenshot attached.</p>'}
       </div>
       <input type="file" id="m-screenshot-file" accept="image/*" class="hidden">
-      <div style="display:flex; gap:0.6rem; margin-top:0.4rem;">
+      <div style="display:flex; gap:0.6rem; margin-top:0.4rem; flex-wrap:wrap;">
         <button type="button" id="m-screenshot-upload" class="btn-secondary">${t.screenshot ? 'Replace' : 'Upload'} Screenshot</button>
+        <button type="button" id="m-screenshot-paste" class="btn-secondary">📋 Paste</button>
         <button type="button" id="m-screenshot-remove" class="btn-danger ${t.screenshot ? '' : 'hidden'}">Remove</button>
       </div>
     </div>
@@ -494,7 +496,7 @@ async function openTradeModal(id) {
   initValueToggles(modalBody);
 
   const modalScreenshot = wireScreenshotField(
-    { previewId: 'm-screenshot-preview', uploadBtnId: 'm-screenshot-upload', removeBtnId: 'm-screenshot-remove', fileId: 'm-screenshot-file' },
+    { previewId: 'm-screenshot-preview', uploadBtnId: 'm-screenshot-upload', removeBtnId: 'm-screenshot-remove', fileId: 'm-screenshot-file', pasteBtnId: 'm-screenshot-paste' },
     t.screenshot ?? null,
     { onError: (err) => { statusEl.textContent = err.message; statusEl.className = 'status-msg error'; } }
   );
@@ -1111,10 +1113,12 @@ usernameInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') saveUsername();
 });
 
-// Downsizes a trade screenshot before it goes in the request body -- charts
-// don't need to be pixel-perfect for journal review, and keeping the data
-// URL small keeps trade rows (and the SQLite file) from bloating.
-function resizeScreenshotToDataUrl(file, maxWidth = 900) {
+// Downsizes a trade screenshot before it goes in the request body. Capped
+// higher (1600px, quality 0.92) than a typical thumbnail resize -- chart
+// screenshots are mostly sharp text/thin lines, which show JPEG compression
+// artifacts a lot more visibly than a photo would at the same quality
+// setting, so this errs toward fidelity over file size.
+function resizeScreenshotToDataUrl(file, maxWidth = 1600) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -1127,7 +1131,7 @@ function resizeScreenshotToDataUrl(file, maxWidth = 900) {
         canvas.width = w;
         canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', 0.75));
+        resolve(canvas.toDataURL('image/jpeg', 0.92));
       };
       img.onerror = () => reject(new Error('Could not read that image.'));
       img.src = e.target.result;
@@ -1173,11 +1177,12 @@ function wireScreenshotField(ids, initial, { onError } = {}) {
   const uploadBtn = document.getElementById(ids.uploadBtnId);
   const removeBtn = document.getElementById(ids.removeBtnId);
   const fileInput = document.getElementById(ids.fileId);
+  const pasteBtn = ids.pasteBtnId ? document.getElementById(ids.pasteBtnId) : null;
 
   function render() {
     previewEl.innerHTML = data
       ? `<img src="${data}" alt="Trade screenshot">`
-      : '<p class="hint">No screenshot attached. You can also just paste (Ctrl+V) an image here.</p>';
+      : '<p class="hint">No screenshot attached.</p>';
     uploadBtn.textContent = data ? 'Replace Screenshot' : 'Upload Screenshot';
     removeBtn.classList.toggle('hidden', !data);
     const img = previewEl.querySelector('img');
@@ -1199,6 +1204,26 @@ function wireScreenshotField(ids, initial, { onError } = {}) {
   removeBtn.addEventListener('click', () => {
     data = null;
     render();
+  });
+
+  // Ctrl+V works anywhere on the page (see the page-level paste listener
+  // below) -- this button is a visible, discoverable alternative that does
+  // the same clipboard read on click, for anyone who doesn't know the
+  // keyboard shortcut exists or would rather click something.
+  pasteBtn?.addEventListener('click', async () => {
+    try {
+      const clipboardItems = await navigator.clipboard.read();
+      const item = clipboardItems.find((ci) => ci.types.some((t) => t.startsWith('image/')));
+      if (!item) {
+        onError?.(new Error('No image found on the clipboard — copy a screenshot first.'));
+        return;
+      }
+      const type = item.types.find((t) => t.startsWith('image/'));
+      const blob = await item.getType(type);
+      await handleFile(new File([blob], 'pasted-image', { type }));
+    } catch {
+      onError?.(new Error("Couldn't read the clipboard — try Ctrl+V instead, or check your browser's clipboard permission."));
+    }
   });
 
   render();
@@ -1515,23 +1540,40 @@ settingsSolPriceInput.addEventListener('input', () => {
 // supported currency server-side) and fills in solPrices for all of them at
 // once -- SOL barely moves minute-to-minute, so this doesn't need to be a
 // live feed, just a one-click way to avoid typing a rate in by hand.
-document.getElementById('settings-sol-price-fetch').addEventListener('click', async () => {
+// Shared by the Settings "Auto-fetch" button and the silent on-load fetch
+// below -- `silent` skips the status-message UI for the on-load case, since
+// a background refresh failing (e.g. offline) shouldn't greet the user with
+// an error message before they've done anything.
+async function fetchAndApplySolPrice({ silent } = {}) {
   const statusEl = document.getElementById('settings-sol-price-status');
-  statusEl.textContent = 'Fetching SOL price…';
-  statusEl.className = 'status-msg';
+  if (!silent) {
+    statusEl.textContent = 'Fetching SOL price…';
+    statusEl.className = 'status-msg';
+  }
   try {
     const prices = await api('/api/solprice');
     solPrices = { ...solPrices, ...prices };
     localStorage.setItem('solPrices', JSON.stringify(solPrices));
     updateCurrencyPriceField();
-    statusEl.textContent = `Fetched — 1 SOL = ${CURRENCY_SYMBOLS.usd}${prices.usd.toFixed(2)} (and set for every currency above).`;
-    statusEl.classList.add('success');
+    if (!silent) {
+      statusEl.textContent = `Fetched — 1 SOL = ${CURRENCY_SYMBOLS.usd}${prices.usd.toFixed(2)} (and set for every currency above).`;
+      statusEl.classList.add('success');
+    }
     window.dispatchEvent(new Event('currencychange'));
   } catch (err) {
-    statusEl.textContent = err.message;
-    statusEl.classList.add('error');
+    if (!silent) {
+      statusEl.textContent = err.message;
+      statusEl.classList.add('error');
+    }
   }
-});
+}
+
+document.getElementById('settings-sol-price-fetch').addEventListener('click', () => fetchAndApplySolPrice());
+
+// Refresh the SOL price automatically once whenever the app is opened,
+// rather than requiring a manual click every time -- SOL doesn't move
+// enough minute-to-minute for this to need to be more frequent than that.
+fetchAndApplySolPrice({ silent: true });
 
 // Re-render whatever's currently on screen when the currency setting
 // changes, so switching it updates a view you already had open instead of
