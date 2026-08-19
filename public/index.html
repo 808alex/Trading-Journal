@@ -131,6 +131,7 @@
             <input type="text" id="contract_address" name="contract_address" required>
           </div>
         </div>
+        <p id="dexscreener-status" class="status-msg"></p>
 
         <div class="field">
           <label>Entry value *</label>
@@ -138,7 +139,7 @@
             <button type="button" class="toggle-btn active" data-type="mcap">Market Cap</button>
             <button type="button" class="toggle-btn" data-type="price">Price</button>
           </div>
-          <input type="text" inputmode="decimal" id="entry_value" placeholder="e.g. 500k, 1.2m, 0.000045" required>
+          <input type="text" inputmode="decimal" id="entry_value" placeholder="e.g. 500k, 1.2m, 0.000045 (auto-fills from Solana contract address)" required>
         </div>
 
         <div class="field-row">

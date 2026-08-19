@@ -202,6 +202,43 @@ function escapeHtml(str) {
 const addForm = document.getElementById('add-trade-form');
 const addStatus = document.getElementById('add-trade-status');
 
+// ---------- DexScreener autofill ----------
+// Debounced on input rather than a dedicated "look up" button, so pasting
+// a contract address (the natural first thing you do when logging a fast
+// memecoin trade) just works without an extra click. Silent on failure --
+// a brand-new/unlisted token not being found isn't an error, it's normal,
+// and shouldn't nag the user mid-trade-entry.
+const dexscreenerStatus = document.getElementById('dexscreener-status');
+let dexscreenerDebounce;
+let dexscreenerLastAddress = null;
+
+document.getElementById('contract_address').addEventListener('input', (e) => {
+  clearTimeout(dexscreenerDebounce);
+  const address = e.target.value.trim();
+  if (address.length < 32 || address === dexscreenerLastAddress) return;
+  dexscreenerDebounce = setTimeout(() => lookupDexscreener(address), 700);
+});
+
+async function lookupDexscreener(address) {
+  dexscreenerLastAddress = address;
+  dexscreenerStatus.textContent = 'Looking up token on DexScreener…';
+  dexscreenerStatus.className = 'status-msg';
+  try {
+    const data = await api(`/api/dexscreener/${encodeURIComponent(address)}`);
+    document.getElementById('coin_name').value = data.symbol || data.name || '';
+    // Fill whichever unit (mcap or price) the entry toggle is currently set
+    // to, rather than forcing it to Market Cap -- respects whatever the
+    // user already picked.
+    const entryType = getToggleType(addForm, 'entry');
+    const value = entryType === 'price' ? data.price_usd : data.market_cap;
+    if (value != null) document.getElementById('entry_value').value = Math.round(value * 100) / 100;
+    dexscreenerStatus.textContent = `Auto-filled from DexScreener: ${data.name} (${data.symbol})`;
+    dexscreenerStatus.classList.add('success');
+  } catch {
+    dexscreenerStatus.textContent = '';
+  }
+}
+
 addForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   addStatus.textContent = '';
@@ -239,6 +276,8 @@ addForm.addEventListener('submit', async (e) => {
       group.querySelectorAll('.toggle-btn').forEach((b) => b.classList.remove('active'));
       group.querySelector('.toggle-btn').classList.add('active');
     });
+    dexscreenerLastAddress = null;
+    dexscreenerStatus.textContent = '';
   } catch (err) {
     addStatus.textContent = err.message === 'Failed to fetch'
       ? "Couldn't reach the server. Is it running?"
@@ -363,7 +402,11 @@ async function openTradeModal(id) {
         <button type="button" class="toggle-btn ${exitType === 'mcap' ? 'active' : ''}" data-type="mcap">Market Cap</button>
         <button type="button" class="toggle-btn ${exitType === 'price' ? 'active' : ''}" data-type="price">Price</button>
       </div>
-      <input type="text" inputmode="decimal" id="m-exit_value" value="${exitValue}" placeholder="e.g. 500k, 1.2m, 0.000045">
+      <div class="inline-input-group">
+        <input type="text" inputmode="decimal" id="m-exit_value" value="${exitValue}" placeholder="e.g. 500k, 1.2m, 0.000045">
+        <button type="button" id="m-fetch-price" class="btn-secondary">&#128260; Current Price</button>
+      </div>
+      <p id="m-dexscreener-status" class="status-msg"></p>
     </div>
 
     <div class="field">
@@ -421,6 +464,27 @@ async function openTradeModal(id) {
 
   modal.classList.remove('hidden');
   initValueToggles(modalBody);
+
+  document.getElementById('m-fetch-price').addEventListener('click', async () => {
+    const statusEl = document.getElementById('m-dexscreener-status');
+    statusEl.textContent = 'Fetching current price…';
+    statusEl.className = 'status-msg';
+    try {
+      // Read the live input, not the trade object the modal was opened
+      // with -- if the address was just corrected/edited, that's what
+      // "current price" should look up.
+      const address = document.getElementById('m-contract_address').value.trim();
+      const data = await api(`/api/dexscreener/${encodeURIComponent(address)}`);
+      const exitType = getToggleType(modalBody, 'm-exit');
+      const value = exitType === 'price' ? data.price_usd : data.market_cap;
+      if (value != null) document.getElementById('m-exit_value').value = Math.round(value * 100) / 100;
+      statusEl.textContent = `Current: ${data.name} (${data.symbol})`;
+      statusEl.classList.add('success');
+    } catch (err) {
+      statusEl.textContent = err.message;
+      statusEl.classList.add('error');
+    }
+  });
 
   function gatherFields() {
     const exit = readToggledValue(modalBody, 'm-exit', 'm-exit_value');
