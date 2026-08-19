@@ -975,6 +975,20 @@ async function loadDashboard() {
     return;
   }
 
+  const earnedCount = data.achievements.filter((a) => a.earned).length;
+  document.getElementById('dashboard-achievements-count').textContent =
+    `${earnedCount} / ${data.achievements.length} earned`;
+  document.getElementById('dashboard-achievements').innerHTML = data.achievements
+    .map(
+      (a) => `
+        <div class="badge-tile ${a.earned ? 'earned' : 'locked'}" title="${escapeHtml(a.description)}">
+          <span class="badge-tile-icon">${a.earned ? a.icon : '🔒'}</span>
+          <span class="badge-tile-title">${escapeHtml(a.title)}</span>
+        </div>
+      `
+    )
+    .join('');
+
   document.getElementById('dashboard-bullets').innerHTML =
     '<ul class="bullet-list">' + data.bullets.map((b) => `<li>${escapeHtml(b)}</li>`).join('') + '</ul>';
 

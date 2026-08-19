@@ -700,6 +700,27 @@ h3 {
 
 .hidden { display: none !important; }
 
+.badge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+}
+.badge-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.75rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  text-align: center;
+}
+.badge-tile-icon { font-size: 1.8rem; }
+.badge-tile-title { font-size: 0.8rem; }
+.badge-tile.earned { border-color: var(--accent); }
+.badge-tile.locked { opacity: 0.45; }
+
 .screenshot-preview {
   border: 1px solid var(--border);
   border-radius: 8px;
