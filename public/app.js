@@ -1056,6 +1056,10 @@ document.getElementById('onboarding-get-started').addEventListener('click', () =
     applyProfile();
   }
   completeOnboarding();
+  // startTour() is defined further down (function declarations are
+  // hoisted), and by the time this click can actually fire the whole
+  // script has already run, so it's always available here.
+  startTour();
 });
 
 document.getElementById('onboarding-skip').addEventListener('click', completeOnboarding);

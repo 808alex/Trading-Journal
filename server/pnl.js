@@ -11,10 +11,12 @@ function computePnl(trade) {
   }
 
   const ratio = exitRef / entryRef;
-  const pnl_percent = (ratio - 1) * 100;
-  // Fees come out of the SOL result (what actually lands in your wallet),
-  // not the percent (a pure measure of the price move itself).
+  // Both figures are net of fees -- pnl_percent is your actual return on
+  // the capital you put in (pnl_amount / amount_invested), not the raw
+  // price move, since fees are money you really paid and a "200%" that
+  // ignores them isn't your real return.
   const pnl_amount = trade.amount_invested * (ratio - 1) - (trade.fees || 0);
+  const pnl_percent = trade.amount_invested ? (pnl_amount / trade.amount_invested) * 100 : null;
 
   return { pnl_percent, pnl_amount };
 }
