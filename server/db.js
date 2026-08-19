@@ -42,15 +42,6 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT
   );
-
-  CREATE TABLE IF NOT EXISTS wallet_transactions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    type TEXT NOT NULL CHECK(type IN ('deposit','withdrawal')),
-    amount REAL NOT NULL CHECK(amount > 0),
-    txn_date TEXT NOT NULL,
-    note TEXT,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
-  );
 `);
 
 // CREATE TABLE IF NOT EXISTS only helps for a brand-new database -- it won't

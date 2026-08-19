@@ -601,8 +601,6 @@ h3 {
 .badge.grade-C { color: var(--yellow); border-color: var(--yellow); }
 .badge.grade-D { color: var(--red); border-color: var(--red); }
 
-.badge.wallet-deposit { color: var(--green); border-color: var(--green); }
-.badge.wallet-withdrawal { color: var(--red); border-color: var(--red); }
 
 .trade-card-meta {
   margin-top: 0.4rem;
