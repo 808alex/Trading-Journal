@@ -1412,7 +1412,7 @@ document.getElementById('settings-import-file').addEventListener('change', async
     statusEl.classList.add('success');
     loadDashboard();
   } catch (err) {
-    statusEl.textContent = err instanceof SyntaxError ? "That file isn't valid JSON — is it a Trading Journal export?" : err.message;
+    statusEl.textContent = err instanceof SyntaxError ? "That file isn't valid JSON — is it a Trenching Journal export?" : err.message;
     statusEl.classList.add('error');
   }
 });
@@ -1522,7 +1522,7 @@ document.getElementById('replay-tour-btn').addEventListener('click', startTour);
 // for now since this repo may be public.)
 document.getElementById('help-email-link').addEventListener('click', (e) => {
   e.preventDefault();
-  window.location.href = `mailto:feedback@example.com?subject=${encodeURIComponent('Trading Journal feedback')}`;
+  window.location.href = `mailto:feedback@example.com?subject=${encodeURIComponent('Trenching Journal feedback')}`;
 });
 
 const settingsCurrencySelect = document.getElementById('settings-currency');

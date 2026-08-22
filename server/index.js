@@ -25,5 +25,5 @@ app.use('/api/backup', backupRouter);
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.listen(PORT, () => {
-  console.log(`Trading journal running at http://localhost:${PORT}`);
+  console.log(`Trenching Journal running at http://localhost:${PORT}`);
 });

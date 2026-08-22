@@ -6,6 +6,6 @@ if not exist node_modules (
   call npm install
 )
 
-start "Trading Journal Server" /min cmd /c "node server\index.js"
+start "Trenching Journal Server" /min cmd /c "node server\index.js"
 timeout /t 2 /nobreak >nul
 start http://localhost:3000

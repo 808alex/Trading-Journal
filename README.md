@@ -1,4 +1,4 @@
-# Trading Journal
+# Trenching Journal
 
 A personal, local, single-user paper-trading journal for memecoin/crypto trades on Solana. Log a trade, close it out, reflect on what you were thinking, and let the app surface patterns in your own behavior over time — all of it stored on your own computer.
 
@@ -20,7 +20,7 @@ A personal, local, single-user paper-trading journal for memecoin/crypto trades 
 ## Getting started
 
 1. Download this repository — either `git clone https://github.com/808alex/Trading-Journal.git`, or use GitHub's green **Code → Download ZIP** button above and extract it, or grab a packaged zip from the [Releases](https://github.com/808alex/Trading-Journal/releases) page if one is published.
-2. **Windows:** double-click `Open Journal App.bat`. It installs dependencies on first run and opens the app in your browser automatically.
+2. **Windows:** double-click `Trenching Journal.bat`. It installs dependencies on first run and opens the app in your browser automatically.
    **Mac/Linux:** run `./start.sh` from a terminal in the project folder (first time only: `chmod +x start.sh`).
 3. Prefer doing it by hand? `npm install` once, then `npm start`, then open [http://localhost:3000](http://localhost:3000).
 
@@ -30,7 +30,7 @@ The server keeps running in its own window — closing that window (or hitting C
 
 There's nothing to "log in" to — just start the server and open the page. Everything you enter is saved immediately to a real database file on your own computer (`data/trades.db`), not to anything cloud-based or tied to this Claude session. It'll be exactly as you left it the next time you start the app, indefinitely, with no extra steps.
 
-Want it one click away? Make a shortcut to `Open Journal App.bat` (Windows: right-click it → **Send to → Desktop (create shortcut)**), then right-click the shortcut → **Properties → Change Icon…** and point it at `journal-icon.ico` in this folder for a proper app icon instead of the generic batch-file one.
+Want it one click away? Make a shortcut to `Trenching Journal.bat` (Windows: right-click it → **Send to → Desktop (create shortcut)**), then right-click the shortcut → **Properties → Change Icon…** and point it at `trenching-journal-icon.ico` in this folder for a proper app icon instead of the generic batch-file one.
 
 ## Data & privacy
 

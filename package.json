@@ -1,5 +1,5 @@
 {
-  "name": "journal-app",
+  "name": "trenching-journal",
   "version": "1.0.0",
   "description": "Personal memecoin/crypto paper trading journal",
   "main": "server/index.js",
@@ -14,7 +14,7 @@
     "type": "git",
     "url": "git+https://github.com/808alex/Trading-Journal.git"
   },
-  "keywords": ["trading-journal", "crypto", "solana", "memecoin", "paper-trading"],
+  "keywords": ["trenching-journal", "crypto", "solana", "memecoin", "paper-trading"],
   "author": "808alex",
   "license": "MIT",
   "type": "commonjs",

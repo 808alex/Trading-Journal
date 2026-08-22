@@ -18,14 +18,14 @@ router.get('/export', (req, res) => {
   const journal_entries = db.prepare('SELECT * FROM journal_entries').all();
 
   const payload = {
-    exportedFrom: 'Trading Journal',
+    exportedFrom: 'Trenching Journal',
     exportVersion: 1,
     exportedAt: new Date().toISOString(),
     trades,
     journal_entries,
   };
 
-  const filename = `trading-journal-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  const filename = `trenching-journal-backup-${new Date().toISOString().slice(0, 10)}.json`;
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   res.send(JSON.stringify(payload, null, 2));
@@ -61,7 +61,7 @@ router.post('/import', (req, res) => {
   const { trades, journal_entries } = req.body || {};
 
   if (!Array.isArray(trades) && !Array.isArray(journal_entries)) {
-    return res.status(400).json({ error: "That doesn't look like a Trading Journal export file." });
+    return res.status(400).json({ error: "That doesn't look like a Trenching Journal export file." });
   }
 
   const result = {};
