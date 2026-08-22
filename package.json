@@ -14,9 +14,9 @@
     "type": "git",
     "url": "git+https://github.com/808alex/Trading-Journal.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": ["trading-journal", "crypto", "solana", "memecoin", "paper-trading"],
+  "author": "808alex",
+  "license": "MIT",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/808alex/Trading-Journal/issues"
