@@ -1485,15 +1485,54 @@ document.getElementById('settings-logout-btn').addEventListener('click', () => {
 document.getElementById('settings-icon-btn').addEventListener('click', () => switchToView('settings'));
 
 // ---------- Backup / Restore ----------
-// Plain navigation (not fetch+blob) so the browser handles the download
-// natively via the server's Content-Disposition header -- no JS blob
-// juggling needed for something this simple.
-document.getElementById('settings-export-btn').addEventListener('click', () => {
-  window.location.href = '/api/backup/export';
+// fetch + Blob + a programmatic <a download> click, rather than a plain
+// window.location.href navigation to the endpoint. A raw navigation to a
+// Content-Disposition: attachment response is the "normal" way to do this
+// and works in an ordinary browser, but in this app's embedded preview
+// environment that navigation gets silently killed (net::ERR_ABORTED,
+// confirmed directly against network logs) -- the fetch+blob route doesn't
+// go through the same code path and completes cleanly there instead.
+async function downloadFromApi(url, fallbackFilename) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Export failed (${res.status})`);
+  const blob = await res.blob();
+
+  const disposition = res.headers.get('Content-Disposition') || '';
+  const match = disposition.match(/filename="([^"]+)"/);
+  const filename = match ? match[1] : fallbackFilename;
+
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(blobUrl);
+}
+
+document.getElementById('settings-export-btn').addEventListener('click', async () => {
+  const statusEl = document.getElementById('settings-backup-status');
+  try {
+    await downloadFromApi('/api/backup/export', 'trenching-journal-backup.json');
+    statusEl.textContent = '';
+    statusEl.className = 'status-msg';
+  } catch (err) {
+    statusEl.textContent = err.message;
+    statusEl.className = 'status-msg error';
+  }
 });
 
-document.getElementById('settings-export-csv-btn').addEventListener('click', () => {
-  window.location.href = '/api/backup/export-csv';
+document.getElementById('settings-export-csv-btn').addEventListener('click', async () => {
+  const statusEl = document.getElementById('settings-backup-status');
+  try {
+    await downloadFromApi('/api/backup/export-csv', 'trenching-journal-trades.csv');
+    statusEl.textContent = '';
+    statusEl.className = 'status-msg';
+  } catch (err) {
+    statusEl.textContent = err.message;
+    statusEl.className = 'status-msg error';
+  }
 });
 
 document.getElementById('settings-import-btn').addEventListener('click', () => {
