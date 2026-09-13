@@ -363,29 +363,21 @@
       <h2>Settings</h2>
 
       <h3>Profile</h3>
-      <div id="settings-no-account">
-        <p class="hint">Create a local profile to personalize the app with your name and photo. This isn't a real online account &mdash; no password, no server, nothing leaves this computer.</p>
-        <button type="button" id="settings-create-account-btn" class="btn-primary">Create Account</button>
-      </div>
-
-      <div id="settings-account-fields" class="hidden">
-        <div class="pfp-upload">
-          <div id="pfp-preview" class="pfp-preview">?</div>
-          <div class="pfp-upload-actions">
-            <button type="button" id="pfp-upload-btn" class="btn-secondary">Upload Photo</button>
-            <button type="button" id="pfp-remove-btn" class="btn-danger hidden">Remove</button>
-            <input type="file" id="pfp-file-input" accept="image/*" class="hidden">
-          </div>
-        </div>
-
-        <div class="field">
-          <label for="settings-username">Display name</label>
-          <div class="inline-input-group">
-            <input type="text" id="settings-username" placeholder="What should we call you?">
-            <button type="button" id="settings-username-save" class="btn-secondary">Enter</button>
-          </div>
+      <p class="hint">Your name and photo, saved only on this computer &mdash; not a real account (no password, no server). Both save automatically as you set them, and travel with a JSON export/import.</p>
+      <div class="pfp-upload">
+        <div id="pfp-preview" class="pfp-preview">?</div>
+        <div class="pfp-upload-actions">
+          <button type="button" id="pfp-upload-btn" class="btn-secondary">Upload Photo</button>
+          <button type="button" id="pfp-remove-btn" class="btn-danger hidden">Remove</button>
+          <input type="file" id="pfp-file-input" accept="image/*" class="hidden">
         </div>
       </div>
+
+      <div class="field">
+        <label for="settings-username">Display name</label>
+        <input type="text" id="settings-username" placeholder="What should we call you?">
+      </div>
+      <button type="button" id="settings-clear-profile-btn" class="btn-danger">Clear Name &amp; Photo</button>
 
       <h3>Currency</h3>
       <p class="hint">SOL is always available everywhere P&amp;L is shown. Pick a default fiat currency here and its rate, then use the SOL/{currency} switch on Total P&amp;L and the Calendar to flip between the two. "Auto-fetch" pulls the current SOL price from DexScreener and fills it in for USD, GBP, EUR, and JPY all at once — no need to type in a rate by hand or repeat this per currency.</p>
@@ -418,11 +410,6 @@
         <button type="button" class="theme-swatch" data-theme="pink" style="--sw1:#ec4899;--sw2:#a78bfa">Pink</button>
       </div>
 
-      <div id="settings-logout-section" class="hidden">
-        <h3>Account</h3>
-        <p class="hint">Logging out clears your name and photo from this browser and brings back the "Create Account" option above; your trades and journal entries are untouched.</p>
-        <button type="button" id="settings-logout-btn" class="btn-danger">Log Out</button>
-      </div>
 
       <h3>Wallets</h3>
       <p class="hint">A reference list of the wallet addresses you trade from — handy if you use more than one. This is just a named list; it doesn't read balances or link to your trades.</p>

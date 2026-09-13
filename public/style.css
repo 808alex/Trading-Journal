@@ -256,20 +256,6 @@ body::before {
   gap: 0.6rem;
 }
 
-.inline-input-group {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.inline-input-group input {
-  flex: 1;
-  min-width: 0;
-}
-
-.inline-input-group button {
-  flex-shrink: 0;
-}
-
 .nav-backdrop {
   position: fixed;
   inset: 0;

@@ -1165,18 +1165,14 @@ function setAvatarVisual(el, dataUrl, fallbackText) {
 // Drives the Dashboard's "Welcome back" line, the bottom-left account
 // widget, and the Settings preview circle -- no real accounts, just a
 // personalization touch built from the display name/photo in Settings.
-// Whether the "Create Account" form is showing even though no name has
-// been saved yet -- needed for the very first fill-in, since before that
-// hasAccount (below) is false and would otherwise keep the fields hidden.
-let settingsShowCreateForm = false;
-
-function updateSettingsAccountUI() {
-  const hasAccount = !!localStorage.getItem('displayName');
-  document.getElementById('settings-no-account').classList.toggle('hidden', hasAccount || settingsShowCreateForm);
-  document.getElementById('settings-account-fields').classList.toggle('hidden', !hasAccount && !settingsShowCreateForm);
-  document.getElementById('settings-logout-section').classList.toggle('hidden', !hasAccount);
-}
-
+// No "Create Account" gate -- the name/photo fields are just always there,
+// and save themselves as you go (see saveUsername below and pfpUpload's
+// change handler), same as everything else in Settings. There used to be a
+// gate requiring an explicit "Enter" click to persist the name, which was
+// easy to miss -- typing a name looked saved (it was sitting right there in
+// the input) but never actually landed in localStorage unless that button
+// was also clicked, which is exactly the kind of thing that silently loses
+// data across an export/import or a reinstall.
 function applyProfile() {
   const name = localStorage.getItem('displayName');
   const pfp = localStorage.getItem('profilePicture');
@@ -1195,18 +1191,10 @@ function applyProfile() {
     dashboardGreeting.classList.add('hidden');
     accountName.textContent = 'Guest';
   }
-
-  updateSettingsAccountUI();
 }
 
 usernameInput.value = localStorage.getItem('displayName') || '';
 applyProfile();
-
-document.getElementById('settings-create-account-btn').addEventListener('click', () => {
-  settingsShowCreateForm = true;
-  updateSettingsAccountUI();
-  usernameInput.focus();
-});
 
 function saveUsername() {
   if (usernameInput.value.trim()) localStorage.setItem('displayName', usernameInput.value.trim());
@@ -1214,9 +1202,17 @@ function saveUsername() {
   applyProfile();
 }
 
-document.getElementById('settings-username-save').addEventListener('click', saveUsername);
-usernameInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') saveUsername();
+// Saves on every keystroke rather than requiring a separate confirm click --
+// there's nowhere for a typed name to go that *isn't* saved now, matching
+// how the photo upload has always worked (picks a file, it's saved).
+usernameInput.addEventListener('input', saveUsername);
+
+document.getElementById('settings-clear-profile-btn').addEventListener('click', () => {
+  if (!confirm('Clear your name and photo? Your trades, journal entries, and wallets are untouched.')) return;
+  localStorage.removeItem('displayName');
+  localStorage.removeItem('profilePicture');
+  usernameInput.value = '';
+  applyProfile();
 });
 
 // Downsizes a trade screenshot before it goes in the request body. Capped
@@ -1463,24 +1459,6 @@ document.getElementById('onboarding-skip').addEventListener('click', completeOnb
 if (!localStorage.getItem('onboardingComplete') && !localStorage.getItem('displayName')) {
   onboardingModal.classList.remove('hidden');
 }
-
-// "Log out" here just means clearing the local profile -- there's no real
-// account system (no server, no user database, no auth) to sign out of.
-// Real Google/Apple/email sign-in would need a hosted backend, registered
-// OAuth apps with each provider, and a user database -- a different kind
-// of project than a local single-profile journal.
-document.getElementById('settings-logout-btn').addEventListener('click', () => {
-  if (!confirm("Log out? This clears your name and photo (not your trades or journal entries) and shows the welcome screen again.")) return;
-  localStorage.removeItem('displayName');
-  localStorage.removeItem('profilePicture');
-  localStorage.removeItem('onboardingComplete');
-  usernameInput.value = '';
-  settingsShowCreateForm = false;
-  applyProfile();
-  switchToView('dashboard');
-  document.getElementById('onboarding-username').value = '';
-  onboardingModal.classList.remove('hidden');
-});
 
 document.getElementById('settings-icon-btn').addEventListener('click', () => switchToView('settings'));
 
