@@ -1,4 +1,4 @@
-# 📓 Trenching Journal
+# 📓 Trenching Journal!
 
 A personal, local, single-user paper-trading journal for memecoin/crypto trades on Solana. Log a trade, close it out, reflect on what you were thinking, and see your own patterns over time — all of it stored on your own computer.
 
