@@ -1492,14 +1492,21 @@ document.getElementById('settings-icon-btn').addEventListener('click', () => swi
 // environment that navigation gets silently killed (net::ERR_ABORTED,
 // confirmed directly against network logs) -- the fetch+blob route doesn't
 // go through the same code path and completes cleanly there instead.
-async function downloadFromApi(url, fallbackFilename) {
+// `transform`, if given, receives the parsed JSON body and returns what
+// actually gets written to the downloaded file -- used below to merge the
+// localStorage profile/settings into the export without a second copy of
+// the blob/anchor download mechanics.
+async function downloadFromApi(url, fallbackFilename, transform) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Export failed (${res.status})`);
-  const blob = await res.blob();
 
   const disposition = res.headers.get('Content-Disposition') || '';
   const match = disposition.match(/filename="([^"]+)"/);
   const filename = match ? match[1] : fallbackFilename;
+
+  const blob = transform
+    ? new Blob([JSON.stringify(await transform(await res.json()), null, 2)], { type: 'application/json' })
+    : await res.blob();
 
   const blobUrl = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1511,10 +1518,29 @@ async function downloadFromApi(url, fallbackFilename) {
   URL.revokeObjectURL(blobUrl);
 }
 
+// The parts of "who's using this app" that only ever lived in localStorage
+// (see [[project_tech_stack]] -- deliberately not real auth, no server
+// account). Folded into the JSON export/import so restoring a backup also
+// brings back your name, photo, theme, and currency setup, not just the
+// trade data -- not part of the CSV export, which is trades-only by design.
+const SETTINGS_KEYS = ['displayName', 'profilePicture', 'appTheme', 'defaultCurrency', 'displayMode', 'solPrices', 'onboardingComplete'];
+
+function readSettingsForExport() {
+  const settings = {};
+  for (const key of SETTINGS_KEYS) {
+    const value = localStorage.getItem(key);
+    if (value != null) settings[key] = value;
+  }
+  return settings;
+}
+
 document.getElementById('settings-export-btn').addEventListener('click', async () => {
   const statusEl = document.getElementById('settings-backup-status');
   try {
-    await downloadFromApi('/api/backup/export', 'trenching-journal-backup.json');
+    await downloadFromApi('/api/backup/export', 'trenching-journal-backup.json', async (payload) => {
+      payload.settings = readSettingsForExport();
+      return payload;
+    });
     statusEl.textContent = '';
     statusEl.className = 'status-msg';
   } catch (err) {
@@ -1604,7 +1630,7 @@ document.getElementById('settings-import-file').addEventListener('change', async
   const isCsv = file.name.toLowerCase().endsWith('.csv');
   const confirmMsg = isCsv
     ? 'Importing will replace every trade currently in this app with the trades from this CSV file. Journal entries and wallets are untouched (the CSV export never included them). This cannot be undone. Continue?'
-    : 'Importing will replace every trade and journal entry currently in this app with the data from this file. This cannot be undone. Continue?';
+    : 'Importing will replace every trade, journal entry, and wallet currently in this app with the data from this file -- along with your name, photo, theme, and currency settings, if the file has them. This cannot be undone. Continue?';
   if (!confirm(confirmMsg)) return;
 
   statusEl.textContent = 'Importing…';
@@ -1614,14 +1640,29 @@ document.getElementById('settings-import-file').addEventListener('change', async
       ? { trades: parseCsv(await file.text()).map(csvRowToTrade) }
       : JSON.parse(await file.text());
     const result = await api('/api/backup/import', { method: 'POST', body: JSON.stringify(payload) });
+
+    let restoredSettings = false;
+    if (payload.settings && typeof payload.settings === 'object') {
+      for (const key of SETTINGS_KEYS) {
+        if (payload.settings[key] != null) localStorage.setItem(key, payload.settings[key]);
+      }
+      restoredSettings = true;
+    }
+
     const parts = [];
     if (result.tradesImported != null) parts.push(`${result.tradesImported} trades`);
     if (result.journalEntriesImported != null) parts.push(`${result.journalEntriesImported} journal entries`);
     if (result.walletsImported != null) parts.push(`${result.walletsImported} wallets`);
-    statusEl.textContent = `Imported ${parts.join(', ')}.`;
+    if (restoredSettings) parts.push('profile settings');
+    statusEl.textContent = `Imported ${parts.join(', ')}. Reloading…`;
     statusEl.classList.add('success');
-    loadDashboard();
-    loadWallets();
+    // Full reload rather than patching the UI in place -- theme in
+    // particular only applies at initial page load (see the inline
+    // flash-prevention script in index.html's <head>), so a reload is the
+    // one reliable way to make every part of the page reflect an import
+    // that can change trades, journal, wallets, AND the profile all at once.
+    await new Promise((r) => setTimeout(r, 500));
+    location.reload();
   } catch (err) {
     statusEl.textContent = err instanceof SyntaxError ? "That file isn't valid JSON — is it a Trenching Journal export?" : err.message;
     statusEl.classList.add('error');
