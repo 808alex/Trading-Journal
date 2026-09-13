@@ -34,20 +34,26 @@ router.get('/export', (req, res) => {
 // Replaces every row in `table` with `rows` from the import file. Column
 // names come from the *current* schema (via PRAGMA table_info), not from
 // whatever keys happen to be in the uploaded JSON -- the file's keys are
-// only used to look up values, never interpolated into SQL, and any column
-// missing from an older export just gets NULL rather than failing the
-// import outright.
+// only used to look up values, never interpolated into SQL. A column left
+// out of a given row is omitted from that row's INSERT entirely (rather
+// than explicitly written as NULL), so the column's own schema default
+// applies instead of tripping a NOT NULL constraint -- e.g. created_at,
+// which is NOT NULL with a DEFAULT, but has no value in a hand-built or
+// partial import.
 function importRows(table, rows) {
-  const columns = getColumns(table);
+  const validColumns = getColumns(table);
   db.prepare(`DELETE FROM ${table}`).run();
   if (!Array.isArray(rows) || rows.length === 0) return 0;
 
-  const placeholders = columns.map(() => '?').join(', ');
-  const stmt = db.prepare(`INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders})`);
   let count = 0;
   for (const row of rows) {
     if (!row || typeof row !== 'object') continue;
-    stmt.run(...columns.map((c) => (row[c] !== undefined ? row[c] : null)));
+    const columns = validColumns.filter((c) => row[c] !== undefined);
+    if (columns.length === 0) continue;
+    const placeholders = columns.map(() => '?').join(', ');
+    db.prepare(`INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders})`).run(
+      ...columns.map((c) => row[c])
+    );
     count += 1;
   }
   return count;
