@@ -237,6 +237,17 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+// A trade/journal row only gets updated_at set once it's actually been
+// edited after creation (see PUT /api/trades/:id and the journal upsert's
+// ON CONFLICT branch) -- null means "never touched since logging it", so
+// this stays silent for anything that's never been edited. Doesn't affect
+// sort order anywhere; it's purely a label.
+function editedTag(row) {
+  if (!row.updated_at) return '';
+  const when = row.updated_at.slice(0, 16).replace('T', ' ');
+  return ` <span class="edited-tag" title="Last edited ${escapeHtml(when)}">(edited)</span>`;
+}
+
 // ---------- Add / Log Trade form ----------
 const addForm = document.getElementById('add-trade-form');
 const addStatus = document.getElementById('add-trade-status');
@@ -268,10 +279,43 @@ document.getElementById('contract_address').addEventListener('input', (e) => {
   dexscreenerDebounce = setTimeout(() => lookupDexscreener(address), 700);
 });
 
+// Renders whatever DexScreener actually returned for this pair -- socials
+// and stats are per-token (set by whoever created it) and DexScreener just
+// doesn't have some of them for a lot of tokens, so every slot falls back
+// to a plain "No X" instead of silently disappearing, per the same pattern
+// used for locked achievements.
+function renderDexInfo(data) {
+  const panel = document.getElementById('dexscreener-info');
+
+  const link = (url, label) => (url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener">${label}</a>` : `<span class="hint-inline">No ${label}</span>`);
+  const links = [link(data.twitter_url, 'Twitter/X'), link(data.website_url, 'Website')];
+  if (data.telegram_url) links.push(link(data.telegram_url, 'Telegram'));
+
+  const stats = [
+    ['DEX', data.dex_id || 'No DEX data'],
+    ['24h Volume', data.volume_24h != null ? `$${Math.round(data.volume_24h).toLocaleString()}` : 'No volume data'],
+    ['24h Change', data.price_change_24h != null ? `${data.price_change_24h >= 0 ? '+' : ''}${data.price_change_24h}%` : 'No price change data'],
+    ['24h Buys/Sells', data.buys_24h != null && data.sells_24h != null ? `${data.buys_24h} / ${data.sells_24h}` : 'No txn data'],
+  ];
+
+  panel.innerHTML = `
+    <div class="dex-info-links">${links.join(' &middot; ')}</div>
+    <div class="dex-info-stats">
+      ${stats.map(([label, value]) => `<div class="dex-info-stat"><span class="dex-info-label">${label}</span><span class="dex-info-value">${escapeHtml(String(value))}</span></div>`).join('')}
+    </div>
+  `;
+  panel.classList.remove('hidden');
+}
+
+function hideDexInfo() {
+  document.getElementById('dexscreener-info').classList.add('hidden');
+}
+
 async function lookupDexscreener(address) {
   dexscreenerLastAddress = address;
   dexscreenerStatus.textContent = 'Looking up token on DexScreener…';
   dexscreenerStatus.className = 'status-msg';
+  hideDexInfo();
   try {
     const data = await api(`/api/dexscreener/${encodeURIComponent(address)}`);
     document.getElementById('coin_name').value = data.symbol || data.name || '';
@@ -283,6 +327,7 @@ async function lookupDexscreener(address) {
     // the actual entry number is always typed in by hand.
     dexscreenerStatus.textContent = `Found: ${data.name} (${data.symbol}) — enter your own entry price/mcap below.`;
     dexscreenerStatus.classList.add('success');
+    renderDexInfo(data);
   } catch {
     dexscreenerStatus.textContent = '';
   }
@@ -345,6 +390,7 @@ addForm.addEventListener('submit', async (e) => {
     addScreenshot.reset();
     dexscreenerLastAddress = null;
     dexscreenerStatus.textContent = '';
+    hideDexInfo();
   } catch (err) {
     addStatus.textContent = err.message === 'Failed to fetch'
       ? "Couldn't reach the server. Is it running?"
@@ -371,7 +417,7 @@ function renderTradeCard(t) {
       <span class="${pnlClass(t.pnl_amount)}">${fmtMoney(t.pnl_amount)} (${fmtPct(t.pnl_percent)})</span>
     </div>
     <div class="trade-card-meta">${escapeHtml(t.contract_address)}</div>
-    <div class="trade-card-meta">${date} · ${t.percent_risked}% risked · ${EMOTIONAL_LABELS[t.emotional_state] || t.emotional_state}</div>
+    <div class="trade-card-meta">${date} · ${t.percent_risked}% risked · ${EMOTIONAL_LABELS[t.emotional_state] || t.emotional_state}${editedTag(t)}</div>
   `;
   card.addEventListener('click', () => openTradeModal(t.id));
   return card;
@@ -463,7 +509,7 @@ async function openTradeModal(id) {
   modalBody.innerHTML = `
     <h2>${escapeHtml(t.coin_name)}</h2>
     <p class="hint">${escapeHtml(t.contract_address)}</p>
-    <p class="hint">Logged ${t.created_at.slice(0, 16).replace('T', ' ')} · Status: ${t.status}</p>
+    <p class="hint">Logged ${t.created_at.slice(0, 16).replace('T', ' ')} · Status: ${t.status}${editedTag(t)}</p>
 
     <div class="field-row">
       <div class="field"><label>Coin name</label><input type="text" id="m-coin_name" value="${escapeHtml(t.coin_name)}"></div>
@@ -933,7 +979,7 @@ async function loadJournalList() {
     card.className = 'trade-card';
     card.innerHTML = `
       <div class="trade-card-top">
-        <span class="coin">${escapeHtml(heading)} <span class="badge">${e.entry_date}</span></span>
+        <span class="coin">${escapeHtml(heading)} <span class="badge">${e.entry_date}</span>${editedTag(e)}</span>
         <button type="button" class="journal-card-star ${e.starred ? 'active' : ''}" title="${e.starred ? 'Unstar' : 'Star'} this entry">${e.starred ? '&#9733;' : '&#9734;'}</button>
       </div>
       <div class="trade-card-meta">${escapeHtml(preview.slice(0, 140))}${preview.length > 140 ? '…' : ''}</div>
@@ -971,7 +1017,7 @@ function openJournalViewModal(entry) {
 
   modalBody.innerHTML = `
     <h2>${escapeHtml(heading)}</h2>
-    <p class="hint">${entry.entry_date}${entry.starred ? ' &middot; &#9733; Starred' : ''}</p>
+    <p class="hint">${entry.entry_date}${entry.starred ? ' &middot; &#9733; Starred' : ''}${editedTag(entry)}</p>
     ${journalField('Market narrative / meta trends', entry.narrative)}
     ${journalField('Volume / activity', entry.volume)}
     ${journalField('Challenges faced', entry.challenges)}

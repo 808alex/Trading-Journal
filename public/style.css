@@ -421,6 +421,12 @@ input:focus, select:focus, textarea:focus {
   color: var(--text-dim);
 }
 
+.edited-tag {
+  font-size: 0.78rem;
+  font-style: italic;
+  color: var(--text-dim);
+}
+
 .section-divider {
   border: none;
   border-top: 1px solid var(--border);
@@ -795,6 +801,28 @@ h3 {
 .badge-row-title { font-size: 0.9rem; }
 .badge-row-desc { font-size: 0.78rem; color: var(--text-dim); }
 .badge-row.locked { opacity: 0.5; }
+
+.dex-info-panel {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin: -0.25rem 0 1rem;
+}
+.dex-info-links {
+  font-size: 0.85rem;
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+.dex-info-links a { color: var(--accent-2); }
+.dex-info-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.5rem;
+}
+.dex-info-stat { display: flex; flex-direction: column; gap: 0.1rem; }
+.dex-info-label { font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.02em; }
+.dex-info-value { font-size: 0.9rem; }
 
 .wallet-row {
   display: flex;

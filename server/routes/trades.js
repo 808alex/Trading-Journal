@@ -195,7 +195,7 @@ router.put('/:id', (req, res) => {
       coin_name = ?, contract_address = ?, entry_price = ?, entry_mcap = ?, exit_price = ?, exit_mcap = ?,
       amount_invested = ?, percent_risked = ?, fees = ?, thesis = ?, emotional_state = ?,
       followed_plan = ?, thoughts_during = ?, lesson_learned = ?, grade = ?,
-      status = ?, closed_at = ?, screenshot = ?
+      status = ?, closed_at = ?, screenshot = ?, updated_at = ?
      WHERE id = ?`
   ).run(
     next.coin_name,
@@ -216,6 +216,7 @@ router.put('/:id', (req, res) => {
     closing ? 'closed' : existing.status,
     closing ? new Date().toISOString() : existing.closed_at,
     next.screenshot ?? null,
+    new Date().toISOString(),
     req.params.id
   );
 

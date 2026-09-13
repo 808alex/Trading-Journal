@@ -39,6 +39,8 @@ router.get('/:address', async (req, res) => {
   }
 
   const best = pickBestPair(pairs);
+  const social = (type) => best.info?.socials?.find((s) => s.type === type)?.url ?? null;
+
   res.json({
     symbol: best.baseToken.symbol,
     name: best.baseToken.name,
@@ -46,6 +48,14 @@ router.get('/:address', async (req, res) => {
     market_cap: best.marketCap ?? best.fdv ?? null,
     liquidity_usd: best.liquidity?.usd ?? null,
     dex_url: best.url ?? null,
+    dex_id: best.dexId ?? null,
+    volume_24h: best.volume?.h24 ?? null,
+    price_change_24h: best.priceChange?.h24 ?? null,
+    buys_24h: best.txns?.h24?.buys ?? null,
+    sells_24h: best.txns?.h24?.sells ?? null,
+    twitter_url: social('twitter'),
+    telegram_url: social('telegram'),
+    website_url: best.info?.websites?.[0]?.url ?? null,
   });
 });
 
