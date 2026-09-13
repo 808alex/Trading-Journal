@@ -1544,31 +1544,50 @@ loadWallets();
 // ---------- Reset Everything ----------
 // A full factory reset -- every trade, journal entry, and wallet, plus the
 // whole localStorage personalization layer (name, photo, theme, currency).
-// Gated behind typing the word "RESET" rather than just an OK/Cancel
-// confirm(), since a stray click here has no undo -- this is the most
-// destructive action in the app.
-document.getElementById('settings-reset-btn').addEventListener('click', async () => {
-  const statusEl = document.getElementById('settings-reset-status');
-  const typed = prompt(
-    'This permanently deletes every trade, journal entry, and wallet, and resets all your settings. This cannot be undone.\n\nType RESET (all caps) to confirm:'
-  );
-  if (typed !== 'RESET') {
-    if (typed !== null) {
-      statusEl.textContent = 'Reset cancelled — you must type RESET exactly to confirm.';
-      statusEl.className = 'status-msg error';
-    }
-    return;
-  }
+// Uses an in-app modal rather than window.prompt()/confirm() -- this app's
+// embedded browser environment doesn't support native prompt() at all (it
+// throws), and a real modal reads more clearly as "an action, not page
+// text" anyway. Gated behind typing the word "RESET" (the confirm button
+// stays disabled until it matches exactly) since this has no undo.
+const resetModal = document.getElementById('reset-modal');
+const resetConfirmInput = document.getElementById('reset-confirm-input');
+const resetConfirmBtn = document.getElementById('reset-confirm-btn');
+const resetStatusEl = document.getElementById('settings-reset-status');
 
-  statusEl.textContent = 'Resetting…';
-  statusEl.className = 'status-msg';
+function openResetModal() {
+  resetConfirmInput.value = '';
+  resetConfirmBtn.disabled = true;
+  resetStatusEl.textContent = '';
+  resetStatusEl.className = 'status-msg';
+  resetModal.classList.remove('hidden');
+  resetConfirmInput.focus();
+}
+
+function closeResetModal() {
+  resetModal.classList.add('hidden');
+}
+
+document.getElementById('settings-reset-btn').addEventListener('click', openResetModal);
+document.getElementById('reset-modal-close').addEventListener('click', closeResetModal);
+document.getElementById('reset-cancel-btn').addEventListener('click', closeResetModal);
+resetModal.addEventListener('click', (e) => { if (e.target === resetModal) closeResetModal(); });
+
+resetConfirmInput.addEventListener('input', () => {
+  resetConfirmBtn.disabled = resetConfirmInput.value !== 'RESET';
+});
+
+resetConfirmBtn.addEventListener('click', async () => {
+  if (resetConfirmInput.value !== 'RESET') return;
+
+  resetStatusEl.textContent = 'Resetting…';
+  resetStatusEl.className = 'status-msg';
   try {
     await api('/api/backup/reset', { method: 'POST' });
     localStorage.clear();
     location.reload();
   } catch (err) {
-    statusEl.textContent = err.message;
-    statusEl.classList.add('error');
+    resetStatusEl.textContent = err.message;
+    resetStatusEl.classList.add('error');
   }
 });
 

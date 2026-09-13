@@ -395,6 +395,18 @@ input:focus, select:focus, textarea:focus {
   color: var(--text-dim);
 }
 
+/* .hint's negative top margin is tuned for sitting snug under a form
+   field's label -- reused after a plain row of buttons (no field above
+   it), that same negative pull yanked the hint up into the buttons
+   instead. margin-bottom here still collapses against it, just net
+   positive now instead of a straight overlap. */
+.btn-row {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
 .warning-hint {
   color: var(--yellow);
   border: 1px solid var(--yellow);

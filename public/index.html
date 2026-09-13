@@ -443,7 +443,7 @@
 
       <h3>Backup &amp; Restore</h3>
       <p class="hint warning-hint">⚠️ Your trades and journal entries live only in this local database file — nothing is synced or backed up anywhere else. If you update, reinstall, or move this app to a new folder or computer, you will lose everything currently logged unless you export a backup first. Nothing sensitive is in this file (no passwords, no wallet keys, no real account), so it's safe to keep a copy anywhere convenient.</p>
-      <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+      <div class="btn-row">
         <button type="button" id="settings-export-btn" class="btn-secondary">Export My Data (JSON)</button>
         <button type="button" id="settings-export-csv-btn" class="btn-secondary">Export Trades (CSV)</button>
         <button type="button" id="settings-import-btn" class="btn-secondary">Import Data</button>
@@ -453,9 +453,8 @@
       <p id="settings-backup-status" class="status-msg"></p>
 
       <h3>Reset Everything</h3>
-      <p class="hint warning-hint">⚠️ This permanently deletes every trade, journal entry, and wallet in this app, and resets your name, photo, theme, and currency settings back to defaults. There is no undo. Export a backup first if there's anything here you might want back.</p>
+      <p class="hint">Permanently deletes every trade, journal entry, and wallet, and resets your name, photo, theme, and currency settings back to defaults. There is no undo.</p>
       <button type="button" id="settings-reset-btn" class="btn-danger">Reset Everything</button>
-      <p id="settings-reset-status" class="status-msg"></p>
     </section>
   </main>
 
@@ -464,6 +463,24 @@
     <div class="modal-content">
       <button id="modal-close" class="modal-close-btn">&times;</button>
       <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- RESET EVERYTHING CONFIRMATION -->
+  <div id="reset-modal" class="modal hidden">
+    <div class="modal-content">
+      <button id="reset-modal-close" class="modal-close-btn">&times;</button>
+      <h2>Reset Everything?</h2>
+      <p class="hint warning-hint">⚠️ This permanently deletes every trade, journal entry, and wallet in this app, and resets your name, photo, theme, and currency settings back to defaults. There is no undo — export a backup first if there's anything here you want to keep.</p>
+      <div class="field">
+        <label for="reset-confirm-input">Type RESET to confirm</label>
+        <input type="text" id="reset-confirm-input" placeholder="RESET" autocomplete="off">
+      </div>
+      <div class="btn-row">
+        <button type="button" id="reset-confirm-btn" class="btn-danger" disabled>Reset Everything</button>
+        <button type="button" id="reset-cancel-btn" class="btn-secondary">Cancel</button>
+      </div>
+      <p id="settings-reset-status" class="status-msg"></p>
     </div>
   </div>
 
