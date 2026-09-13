@@ -66,6 +66,6 @@ Vanilla HTML/CSS/JS on the frontend (no build step, no framework), an Express ba
 
 ---
 
-## 📄 License
+## 📄 License!
 
 MIT — see [LICENSE](LICENSE).
