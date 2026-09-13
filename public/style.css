@@ -420,6 +420,25 @@ h3 {
   margin: 0 0 1rem;
 }
 
+/* Settings stacks many distinct sections (Profile, Currency, Theme,
+   Account, Wallets, Backup & Restore) one after another -- h3's default
+   zero top-margin left them running straight into whatever came before,
+   which read as cramped. A visible divider plus real spacing gives each
+   section its own breathing room. */
+#view-settings h3 {
+  margin-top: 2.25rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+/* Exempt only the very first section (Profile, right after the page's own
+   h2) -- :first-of-type alone would also match "Account", which sits in
+   its own nested div and is otherwise the first h3 *within that div*. */
+#view-settings h2 + h3 {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
 .value-toggle {
   display: flex;
   gap: 0.4rem;
@@ -719,7 +738,6 @@ h3 {
   margin-top: -0.4rem;
 }
 
-#view-dashboard .pattern-list,
 #view-dashboard .corr-list {
   margin-bottom: 2rem;
 }
@@ -775,7 +793,7 @@ h3 {
   border-radius: 8px;
   margin-bottom: 0.5rem;
 }
-.wallet-row-label { font-size: 0.85rem; font-weight: 600; flex-shrink: 0; }
+.wallet-row-name { font-size: 0.85rem; font-weight: 600; flex-shrink: 0; }
 .wallet-row-address {
   font-size: 0.8rem;
   color: var(--text-dim);
@@ -955,34 +973,6 @@ h3 {
   flex-direction: column;
   gap: 0.5rem;
   font-size: 0.9rem;
-}
-
-.pattern-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.pattern-pill {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 0.4rem 0.85rem;
-  font-size: 0.85rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  transition: border-color 150ms ease, transform 150ms ease;
-}
-
-.pattern-pill:hover { border-color: var(--accent); transform: translateY(-1px); }
-.pattern-pill .pattern-count {
-  background: rgba(139, 92, 246, 0.2);
-  color: var(--accent-2);
-  border-radius: 999px;
-  padding: 0.05rem 0.5rem;
-  font-size: 0.75rem;
 }
 
 .corr-list {

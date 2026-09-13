@@ -32,7 +32,7 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS wallets (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    label TEXT NOT NULL,
+    name TEXT NOT NULL,
     address TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
@@ -68,5 +68,16 @@ ensureColumn('trades', 'fees', 'REAL NOT NULL DEFAULT 0');
 ensureColumn('trades', 'screenshot', 'TEXT');
 ensureColumn('journal_entries', 'title', 'TEXT');
 ensureColumn('journal_entries', 'starred', 'INTEGER NOT NULL DEFAULT 0');
+
+// wallets.label -> wallets.name: renamed for clarity shortly after the
+// column was introduced. Only matters for a database that already has the
+// old column -- CREATE TABLE above already uses `name` for a fresh install.
+function renameColumn(table, oldName, newName) {
+  const existing = db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
+  if (existing.includes(oldName) && !existing.includes(newName)) {
+    db.exec(`ALTER TABLE ${table} RENAME COLUMN ${oldName} TO ${newName}`);
+  }
+}
+renameColumn('wallets', 'label', 'name');
 
 module.exports = db;

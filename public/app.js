@@ -1035,15 +1035,6 @@ async function loadDashboard() {
   document.getElementById('dashboard-bullets').innerHTML =
     '<ul class="bullet-list">' + data.bullets.map((b) => `<li>${escapeHtml(b)}</li>`).join('') + '</ul>';
 
-  const patternsEl = document.getElementById('dashboard-patterns');
-  if (data.patterns.length === 0) {
-    patternsEl.innerHTML = '<p class="hint">No recurring phrases yet &mdash; keep logging lessons and thoughts on your trades.</p>';
-  } else {
-    patternsEl.innerHTML = data.patterns
-      .map((p) => `<span class="pattern-pill">${escapeHtml(p.phrase)} <span class="pattern-count">${p.count}</span></span>`)
-      .join('');
-  }
-
   renderCorrList('dashboard-by-emotion', data.byEmotion);
   renderCorrList('dashboard-by-risk', data.byRisk);
   renderCorrList('dashboard-by-grade', data.byGrade);
@@ -1505,7 +1496,7 @@ async function loadWallets() {
           .map(
             (w) => `
               <div class="wallet-row">
-                <span class="wallet-row-label">${escapeHtml(w.label)}</span>
+                <span class="wallet-row-name">${escapeHtml(w.name)}</span>
                 <span class="wallet-row-address">${escapeHtml(w.address)}</span>
                 <button type="button" class="icon-btn-sm wallet-remove-btn" data-id="${w.id}" aria-label="Remove wallet" title="Remove">&times;</button>
               </div>
@@ -1536,7 +1527,7 @@ document.getElementById('wallet-form').addEventListener('submit', async (e) => {
     await api('/api/wallets', {
       method: 'POST',
       body: JSON.stringify({
-        label: document.getElementById('wallet-label').value,
+        name: document.getElementById('wallet-name').value,
         address: document.getElementById('wallet-address').value,
       }),
     });
@@ -1549,6 +1540,37 @@ document.getElementById('wallet-form').addEventListener('submit', async (e) => {
 });
 
 loadWallets();
+
+// ---------- Reset Everything ----------
+// A full factory reset -- every trade, journal entry, and wallet, plus the
+// whole localStorage personalization layer (name, photo, theme, currency).
+// Gated behind typing the word "RESET" rather than just an OK/Cancel
+// confirm(), since a stray click here has no undo -- this is the most
+// destructive action in the app.
+document.getElementById('settings-reset-btn').addEventListener('click', async () => {
+  const statusEl = document.getElementById('settings-reset-status');
+  const typed = prompt(
+    'This permanently deletes every trade, journal entry, and wallet, and resets all your settings. This cannot be undone.\n\nType RESET (all caps) to confirm:'
+  );
+  if (typed !== 'RESET') {
+    if (typed !== null) {
+      statusEl.textContent = 'Reset cancelled — you must type RESET exactly to confirm.';
+      statusEl.className = 'status-msg error';
+    }
+    return;
+  }
+
+  statusEl.textContent = 'Resetting…';
+  statusEl.className = 'status-msg';
+  try {
+    await api('/api/backup/reset', { method: 'POST' });
+    localStorage.clear();
+    location.reload();
+  } catch (err) {
+    statusEl.textContent = err.message;
+    statusEl.classList.add('error');
+  }
+});
 
 document.getElementById('account-widget').addEventListener('click', () => switchToView('settings'));
 

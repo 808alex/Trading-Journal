@@ -104,10 +104,6 @@
 
       <div id="dashboard-bullets" class="totals-summary"></div>
 
-      <h3>Recurring Patterns</h3>
-      <p class="hint">Frequency scan of your "lesson learned" and "thoughts during" notes &mdash; phrases showing up across multiple trades.</p>
-      <div id="dashboard-patterns" class="pattern-list"></div>
-
       <h3>Performance by Emotional State</h3>
       <div id="dashboard-by-emotion" class="corr-list"></div>
 
@@ -428,13 +424,13 @@
       </div>
 
       <h3>Wallets</h3>
-      <p class="hint">A reference list of the wallet addresses you trade from — handy if you use more than one. This is just a labeled list; it doesn't read balances or link to your trades.</p>
+      <p class="hint">A reference list of the wallet addresses you trade from — handy if you use more than one. This is just a named list; it doesn't read balances or link to your trades.</p>
       <div id="wallets-list"></div>
       <form id="wallet-form">
         <div class="field-row">
           <div class="field">
-            <label for="wallet-label">Label</label>
-            <input type="text" id="wallet-label" placeholder="e.g. Main, Burner 2" required>
+            <label for="wallet-name">Name</label>
+            <input type="text" id="wallet-name" placeholder="e.g. Main, Burner 2" required>
           </div>
           <div class="field">
             <label for="wallet-address">Address</label>
@@ -455,6 +451,11 @@
       </div>
       <p class="hint">Importing replaces every trade and journal entry currently in this app with whatever is in the file — it's meant for restoring a backup into a fresh copy of the app, not merging two sets of data together. The CSV export is trades only, for opening in Excel/Sheets — it can't be imported back in.</p>
       <p id="settings-backup-status" class="status-msg"></p>
+
+      <h3>Reset Everything</h3>
+      <p class="hint warning-hint">⚠️ This permanently deletes every trade, journal entry, and wallet in this app, and resets your name, photo, theme, and currency settings back to defaults. There is no undo. Export a backup first if there's anything here you might want back.</p>
+      <button type="button" id="settings-reset-btn" class="btn-danger">Reset Everything</button>
+      <p id="settings-reset-status" class="status-msg"></p>
     </section>
   </main>
 

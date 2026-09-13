@@ -1,5 +1,3 @@
-const { computeRecurringPatterns } = require('./patterns');
-
 function avg(nums) {
   return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null;
 }
@@ -52,11 +50,11 @@ function groupStats(closed, keyFn, order) {
 // Simple, explainable heuristics -- not a model. Each bullet only fires when
 // there's a real enough sample to say something meaningful, so the dashboard
 // doesn't make confident-sounding claims off two data points.
-function buildBullets({ closed, patterns, byEmotion, byRisk, byGrade }) {
+function buildBullets({ closed, byEmotion, byRisk, byGrade }) {
   const bullets = [];
 
   if (closed.length < 3) {
-    return ['Log a few more closed trades to unlock recurring-pattern and correlation insights.'];
+    return ['Log a few more closed trades to unlock correlation insights.'];
   }
 
   const wins = closed.filter((t) => t.pnl_amount > 0).length;
@@ -65,11 +63,6 @@ function buildBullets({ closed, patterns, byEmotion, byRisk, byGrade }) {
   bullets.push(
     `${closed.length} closed trades, ${winRate}% win rate, ${totalPnl >= 0 ? '+' : ''}${totalPnl.toFixed(3)} SOL total.`
   );
-
-  if (patterns.length > 0) {
-    const top = patterns[0];
-    bullets.push(`Most recurring note: "${top.phrase}" — shows up in ${top.count} of ${closed.length} closed trades.`);
-  }
 
   const emotionsWithData = byEmotion.filter((e) => e.count >= 2 && e.avgPnlPercent != null);
   if (emotionsWithData.length >= 2) {
@@ -109,17 +102,13 @@ function buildBullets({ closed, patterns, byEmotion, byRisk, byGrade }) {
 function computeDashboard(trades) {
   const closed = trades.filter((t) => t.status === 'closed');
 
-  const patterns = computeRecurringPatterns(
-    closed.map((t) => [t.lesson_learned, t.thoughts_during].filter(Boolean).join('. '))
-  );
-
   const byEmotion = groupStats(closed, (t) => t.emotional_state);
   const byRisk = groupStats(closed, (t) => riskBucket(t.percent_risked), RISK_BUCKET_ORDER);
   const byGrade = groupStats(closed, (t) => t.grade, ['A', 'B', 'C', 'D']);
 
-  const bullets = buildBullets({ closed, patterns, byEmotion, byRisk, byGrade });
+  const bullets = buildBullets({ closed, byEmotion, byRisk, byGrade });
 
-  return { bullets, patterns, byEmotion, byRisk, byGrade };
+  return { bullets, byEmotion, byRisk, byGrade };
 }
 
 module.exports = { computeDashboard };

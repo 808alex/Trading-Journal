@@ -118,4 +118,16 @@ router.post('/import', (req, res) => {
   res.json(result);
 });
 
+// POST /api/backup/reset — permanently wipes every trade, journal entry,
+// and wallet. Unlike import (which replaces with a new set from a file),
+// this leaves nothing behind -- a hard factory reset, meant to be paired
+// with the client also clearing its own localStorage (name/photo/theme/
+// currency), which this route has no access to.
+router.post('/reset', (req, res) => {
+  const tradesDeleted = db.prepare('DELETE FROM trades').run().changes;
+  const journalDeleted = db.prepare('DELETE FROM journal_entries').run().changes;
+  const walletsDeleted = db.prepare('DELETE FROM wallets').run().changes;
+  res.json({ tradesDeleted, journalDeleted, walletsDeleted });
+});
+
 module.exports = router;

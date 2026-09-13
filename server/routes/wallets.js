@@ -3,7 +3,7 @@ const db = require('../db');
 
 const router = express.Router();
 
-// Purely a reference list -- a labeled set of addresses you trade from, so
+// Purely a reference list -- a named set of addresses you trade from, so
 // you (or anyone using this with multiple wallets) can keep track of which
 // is which. Not linked to trades or balances in any way; that's a bigger,
 // separate idea (auto-importing trade history from a wallet) that needs its
@@ -14,18 +14,18 @@ router.get('/', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { label, address } = req.body;
+  const { name, address } = req.body;
 
-  if (!label || !label.trim()) {
-    return res.status(400).json({ error: 'A label is required (e.g. "Main", "Burner 2").' });
+  if (!name || !name.trim()) {
+    return res.status(400).json({ error: 'A name is required (e.g. "Main", "Burner 2").' });
   }
   if (!address || !address.trim()) {
     return res.status(400).json({ error: 'A wallet address is required.' });
   }
 
   const result = db
-    .prepare('INSERT INTO wallets (label, address) VALUES (?, ?)')
-    .run(label.trim(), address.trim());
+    .prepare('INSERT INTO wallets (name, address) VALUES (?, ?)')
+    .run(name.trim(), address.trim());
 
   const row = db.prepare('SELECT * FROM wallets WHERE id = ?').get(result.lastInsertRowid);
   res.status(201).json(row);
