@@ -448,9 +448,9 @@
         <button type="button" id="settings-export-btn" class="btn-secondary">Export My Data (JSON)</button>
         <button type="button" id="settings-export-csv-btn" class="btn-secondary">Export Trades (CSV)</button>
         <button type="button" id="settings-import-btn" class="btn-secondary">Import Data</button>
-        <input type="file" id="settings-import-file" accept="application/json" class="hidden">
+        <input type="file" id="settings-import-file" accept="application/json,.json,text/csv,.csv" class="hidden">
       </div>
-      <p class="hint">Importing replaces every trade and journal entry currently in this app with whatever is in the file — it's meant for restoring a backup into a fresh copy of the app, not merging two sets of data together. The CSV export is trades only, for opening in Excel/Sheets — it can't be imported back in.</p>
+      <p class="hint">Importing accepts either file. A JSON file replaces every trade and journal entry (and wallet); a CSV file replaces trades only, since journal entries and wallets were never part of the CSV export. Either way it's meant for restoring a backup into a fresh copy of the app, not merging two sets of data together.</p>
       <p id="settings-backup-status" class="status-msg"></p>
 
       <h3>Reset Everything</h3>

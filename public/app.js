@@ -1500,20 +1500,80 @@ document.getElementById('settings-import-btn').addEventListener('click', () => {
   document.getElementById('settings-import-file').click();
 });
 
+// Parses CSV text written in the same quoting style the export uses
+// (RFC-4180-ish: a field with a comma/quote/newline is wrapped in quotes,
+// an internal quote doubles up). A plain text.split(',') would corrupt any
+// thesis/lesson text that happens to contain a comma or a line break, which
+// is common in these fields, so this is a real small state-machine parser
+// rather than a shortcut.
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (inQuotes) {
+      if (char === '"') {
+        if (text[i + 1] === '"') { field += '"'; i += 1; } else { inQuotes = false; }
+      } else {
+        field += char;
+      }
+      continue;
+    }
+    if (char === '"') { inQuotes = true; continue; }
+    if (char === ',') { row.push(field); field = ''; continue; }
+    if (char === '\r') continue;
+    if (char === '\n') { row.push(field); rows.push(row); row = []; field = ''; continue; }
+    field += char;
+  }
+  if (field !== '' || row.length > 0) { row.push(field); rows.push(row); }
+  if (rows.length === 0) return [];
+
+  const headers = rows[0];
+  return rows
+    .slice(1)
+    .filter((r) => r.length > 1 || r[0] !== '')
+    .map((r) => Object.fromEntries(headers.map((h, idx) => [h, r[idx] ?? ''])));
+}
+
+// The CSV export's numeric columns come back as plain strings and its
+// pnl_amount/pnl_percent columns aren't real trade columns at all (they're
+// computed on read, same as everywhere else in the app) -- those get sent
+// along harmlessly anyway since the import route only ever inserts columns
+// that actually exist in the schema. An empty string means "no value", not
+// literally the text "", so that becomes null rather than a blank string
+// landing in a REAL/numeric column.
+const CSV_NUMERIC_FIELDS = ['id', 'entry_price', 'entry_mcap', 'exit_price', 'exit_mcap', 'amount_invested', 'percent_risked', 'fees'];
+
+function csvRowToTrade(row) {
+  const trade = {};
+  for (const [key, value] of Object.entries(row)) {
+    if (value === '') { trade[key] = null; continue; }
+    trade[key] = CSV_NUMERIC_FIELDS.includes(key) ? Number(value) : value;
+  }
+  return trade;
+}
+
 document.getElementById('settings-import-file').addEventListener('change', async (e) => {
   const file = e.target.files[0];
   e.target.value = '';
   if (!file) return;
 
   const statusEl = document.getElementById('settings-backup-status');
-  if (!confirm('Importing will replace every trade and journal entry currently in this app with the data from this file. This cannot be undone. Continue?')) {
-    return;
-  }
+  const isCsv = file.name.toLowerCase().endsWith('.csv');
+  const confirmMsg = isCsv
+    ? 'Importing will replace every trade currently in this app with the trades from this CSV file. Journal entries and wallets are untouched (the CSV export never included them). This cannot be undone. Continue?'
+    : 'Importing will replace every trade and journal entry currently in this app with the data from this file. This cannot be undone. Continue?';
+  if (!confirm(confirmMsg)) return;
 
   statusEl.textContent = 'Importing…';
   statusEl.className = 'status-msg';
   try {
-    const payload = JSON.parse(await file.text());
+    const payload = isCsv
+      ? { trades: parseCsv(await file.text()).map(csvRowToTrade) }
+      : JSON.parse(await file.text());
     const result = await api('/api/backup/import', { method: 'POST', body: JSON.stringify(payload) });
     const parts = [];
     if (result.tradesImported != null) parts.push(`${result.tradesImported} trades`);
