@@ -56,6 +56,44 @@ function readToggledValue(root, groupName, inputId) {
   };
 }
 
+// ---------- Close-trade validation ----------
+// The server already refuses to close a trade missing these fields
+// (validateCloseFields in server/routes/trades.js), but that's a round trip
+// just to find out something was missing. This checks the same
+// requirements client-side first and highlights exactly which field(s) are
+// empty, rather than a generic error banner after a failed submit. Only
+// applies when actually closing -- saving/editing an open trade has no such
+// requirement.
+function markFieldError(el) {
+  el.classList.add('field-error');
+}
+
+function clearFieldErrors(root) {
+  root.querySelectorAll('.field-error').forEach((el) => el.classList.remove('field-error'));
+}
+
+function validateCloseRequirements(root, { exitEl, exitHasValue, thesisEl, followedPlanEl, gradeEl }) {
+  clearFieldErrors(root);
+  const missing = [];
+  if (!exitHasValue) {
+    markFieldError(exitEl);
+    missing.push('exit value');
+  }
+  if (!thesisEl.value.trim()) {
+    markFieldError(thesisEl);
+    missing.push('thesis');
+  }
+  if (!followedPlanEl.value) {
+    markFieldError(followedPlanEl);
+    missing.push('"did you follow your plan?"');
+  }
+  if (!gradeEl.value) {
+    markFieldError(gradeEl);
+    missing.push('grade');
+  }
+  return missing;
+}
+
 initValueToggles(document);
 
 // ---------- Tab navigation ----------
@@ -254,10 +292,26 @@ addForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   addStatus.textContent = '';
   addStatus.className = 'status-msg';
+  clearFieldErrors(addForm);
 
   const status = e.submitter?.dataset.status || 'open';
   const entryVal = readToggledValue(addForm, 'entry', 'entry_value');
   const exitVal = readToggledValue(addForm, 'exit', 'exit_value');
+
+  if (status === 'closed') {
+    const missing = validateCloseRequirements(addForm, {
+      exitEl: document.getElementById('exit_value'),
+      exitHasValue: exitVal.price != null || exitVal.mcap != null,
+      thesisEl: document.getElementById('thesis'),
+      followedPlanEl: document.getElementById('followed_plan'),
+      gradeEl: document.getElementById('grade'),
+    });
+    if (missing.length > 0) {
+      addStatus.textContent = `Fill in ${missing.join(', ')} before closing this trade.`;
+      addStatus.classList.add('error');
+      return;
+    }
+  }
 
   const body = {
     coin_name: document.getElementById('coin_name').value,
@@ -522,6 +576,7 @@ async function openTradeModal(id) {
   const statusEl = document.getElementById('m-status');
 
   document.getElementById('m-save').addEventListener('click', async () => {
+    clearFieldErrors(modalBody);
     try {
       await api(`/api/trades/${id}`, { method: 'PUT', body: JSON.stringify(gatherFields()) });
       statusEl.textContent = 'Saved.';
@@ -536,6 +591,20 @@ async function openTradeModal(id) {
   const closeBtn = document.getElementById('m-close-trade');
   if (closeBtn) {
     closeBtn.addEventListener('click', async () => {
+      const exit = readToggledValue(modalBody, 'm-exit', 'm-exit_value');
+      const missing = validateCloseRequirements(modalBody, {
+        exitEl: document.getElementById('m-exit_value'),
+        exitHasValue: exit.price != null || exit.mcap != null,
+        thesisEl: document.getElementById('m-thesis'),
+        followedPlanEl: document.getElementById('m-followed_plan'),
+        gradeEl: document.getElementById('m-grade'),
+      });
+      if (missing.length > 0) {
+        statusEl.textContent = `Fill in ${missing.join(', ')} before closing this trade.`;
+        statusEl.className = 'status-msg error';
+        return;
+      }
+
       try {
         await api(`/api/trades/${id}`, { method: 'PUT', body: JSON.stringify({ ...gatherFields(), status: 'closed' }) });
         modal.classList.add('hidden');
@@ -1386,6 +1455,10 @@ document.getElementById('settings-export-btn').addEventListener('click', () => {
   window.location.href = '/api/backup/export';
 });
 
+document.getElementById('settings-export-csv-btn').addEventListener('click', () => {
+  window.location.href = '/api/backup/export-csv';
+});
+
 document.getElementById('settings-import-btn').addEventListener('click', () => {
   document.getElementById('settings-import-file').click();
 });
@@ -1408,14 +1481,75 @@ document.getElementById('settings-import-file').addEventListener('change', async
     const parts = [];
     if (result.tradesImported != null) parts.push(`${result.tradesImported} trades`);
     if (result.journalEntriesImported != null) parts.push(`${result.journalEntriesImported} journal entries`);
-    statusEl.textContent = `Imported ${parts.join(' and ')}.`;
+    if (result.walletsImported != null) parts.push(`${result.walletsImported} wallets`);
+    statusEl.textContent = `Imported ${parts.join(', ')}.`;
     statusEl.classList.add('success');
     loadDashboard();
+    loadWallets();
   } catch (err) {
     statusEl.textContent = err instanceof SyntaxError ? "That file isn't valid JSON — is it a Trenching Journal export?" : err.message;
     statusEl.classList.add('error');
   }
 });
+
+// ---------- Wallets ----------
+// A reference list only -- no balances, no link to trades. Loaded once on
+// script init (Settings has no dedicated switchToView load hook the way the
+// other tabs do, since it's not gated behind an async fetch anywhere else).
+async function loadWallets() {
+  const listEl = document.getElementById('wallets-list');
+  try {
+    const wallets = await api('/api/wallets');
+    listEl.innerHTML = wallets.length
+      ? wallets
+          .map(
+            (w) => `
+              <div class="wallet-row">
+                <span class="wallet-row-label">${escapeHtml(w.label)}</span>
+                <span class="wallet-row-address">${escapeHtml(w.address)}</span>
+                <button type="button" class="icon-btn-sm wallet-remove-btn" data-id="${w.id}" aria-label="Remove wallet" title="Remove">&times;</button>
+              </div>
+            `
+          )
+          .join('')
+      : '<p class="hint">No wallets added yet.</p>';
+    listEl.querySelectorAll('.wallet-remove-btn').forEach((btn) => {
+      btn.addEventListener('click', () => deleteWallet(btn.dataset.id));
+    });
+  } catch (err) {
+    listEl.innerHTML = `<p class="status-msg error">Couldn't load wallets: ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+async function deleteWallet(id) {
+  if (!confirm('Remove this wallet from the list?')) return;
+  await api(`/api/wallets/${id}`, { method: 'DELETE' });
+  loadWallets();
+}
+
+document.getElementById('wallet-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const statusEl = document.getElementById('wallet-status');
+  statusEl.textContent = '';
+  statusEl.className = 'status-msg';
+  try {
+    await api('/api/wallets', {
+      method: 'POST',
+      body: JSON.stringify({
+        label: document.getElementById('wallet-label').value,
+        address: document.getElementById('wallet-address').value,
+      }),
+    });
+    document.getElementById('wallet-form').reset();
+    loadWallets();
+  } catch (err) {
+    statusEl.textContent = err.message;
+    statusEl.classList.add('error');
+  }
+});
+
+loadWallets();
+
 document.getElementById('account-widget').addEventListener('click', () => switchToView('settings'));
 
 // ---------- Guided tour ----------

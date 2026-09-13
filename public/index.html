@@ -427,14 +427,33 @@
         <button type="button" id="settings-logout-btn" class="btn-danger">Log Out</button>
       </div>
 
+      <h3>Wallets</h3>
+      <p class="hint">A reference list of the wallet addresses you trade from — handy if you use more than one. This is just a labeled list; it doesn't read balances or link to your trades.</p>
+      <div id="wallets-list"></div>
+      <form id="wallet-form">
+        <div class="field-row">
+          <div class="field">
+            <label for="wallet-label">Label</label>
+            <input type="text" id="wallet-label" placeholder="e.g. Main, Burner 2" required>
+          </div>
+          <div class="field">
+            <label for="wallet-address">Address</label>
+            <input type="text" id="wallet-address" placeholder="Wallet address" required>
+          </div>
+        </div>
+        <button type="submit" class="btn-secondary">Add Wallet</button>
+        <p id="wallet-status" class="status-msg"></p>
+      </form>
+
       <h3>Backup &amp; Restore</h3>
       <p class="hint warning-hint">⚠️ Your trades and journal entries live only in this local database file — nothing is synced or backed up anywhere else. If you update, reinstall, or move this app to a new folder or computer, you will lose everything currently logged unless you export a backup first. Nothing sensitive is in this file (no passwords, no wallet keys, no real account), so it's safe to keep a copy anywhere convenient.</p>
       <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
-        <button type="button" id="settings-export-btn" class="btn-secondary">Export My Data</button>
+        <button type="button" id="settings-export-btn" class="btn-secondary">Export My Data (JSON)</button>
+        <button type="button" id="settings-export-csv-btn" class="btn-secondary">Export Trades (CSV)</button>
         <button type="button" id="settings-import-btn" class="btn-secondary">Import Data</button>
         <input type="file" id="settings-import-file" accept="application/json" class="hidden">
       </div>
-      <p class="hint">Importing replaces every trade and journal entry currently in this app with whatever is in the file — it's meant for restoring a backup into a fresh copy of the app, not merging two sets of data together.</p>
+      <p class="hint">Importing replaces every trade and journal entry currently in this app with whatever is in the file — it's meant for restoring a backup into a fresh copy of the app, not merging two sets of data together. The CSV export is trades only, for opening in Excel/Sheets — it can't be imported back in.</p>
       <p id="settings-backup-status" class="status-msg"></p>
     </section>
   </main>

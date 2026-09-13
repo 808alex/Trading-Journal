@@ -384,6 +384,11 @@ input:focus, select:focus, textarea:focus {
   box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18);
 }
 
+.field-error {
+  border-color: var(--red) !important;
+  box-shadow: 0 0 0 3px rgba(255, 85, 119, 0.18);
+}
+
 .hint {
   margin: -0.5rem 0 1rem;
   font-size: 0.8rem;
@@ -760,6 +765,24 @@ h3 {
 .badge-row-title { font-size: 0.9rem; }
 .badge-row-desc { font-size: 0.78rem; color: var(--text-dim); }
 .badge-row.locked { opacity: 0.5; }
+
+.wallet-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+.wallet-row-label { font-size: 0.85rem; font-weight: 600; flex-shrink: 0; }
+.wallet-row-address {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  overflow-x: auto;
+  white-space: nowrap;
+  flex: 1;
+}
 
 .screenshot-lightbox {
   position: fixed;

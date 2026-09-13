@@ -1,5 +1,6 @@
 const express = require('express');
 const db = require('../db');
+const { computePnl } = require('../pnl');
 
 const router = express.Router();
 
@@ -16,6 +17,7 @@ function getColumns(table) {
 router.get('/export', (req, res) => {
   const trades = db.prepare('SELECT * FROM trades').all();
   const journal_entries = db.prepare('SELECT * FROM journal_entries').all();
+  const wallets = db.prepare('SELECT * FROM wallets').all();
 
   const payload = {
     exportedFrom: 'Trenching Journal',
@@ -23,12 +25,51 @@ router.get('/export', (req, res) => {
     exportedAt: new Date().toISOString(),
     trades,
     journal_entries,
+    wallets,
   };
 
   const filename = `trenching-journal-backup-${new Date().toISOString().slice(0, 10)}.json`;
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   res.send(JSON.stringify(payload, null, 2));
+});
+
+// A single CSV field, quoted only when it needs to be (contains a comma,
+// quote, or newline) -- an internal quote doubles up per the CSV spec.
+function csvField(value) {
+  if (value == null) return '';
+  const str = String(value);
+  if (/[",\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+  return str;
+}
+
+// GET /api/backup/export-csv — trades only (journal entries are free-text
+// narrative, not really spreadsheet-shaped) with P&L computed the same way
+// the app displays it, for anyone who wants to poke at their own data in
+// Excel/Sheets rather than the app itself.
+router.get('/export-csv', (req, res) => {
+  const trades = db.prepare('SELECT * FROM trades ORDER BY coalesce(closed_at, created_at) ASC, id ASC').all();
+
+  const columns = [
+    'id', 'coin_name', 'contract_address', 'status',
+    'entry_price', 'entry_mcap', 'exit_price', 'exit_mcap',
+    'amount_invested', 'percent_risked', 'fees',
+    'pnl_amount', 'pnl_percent',
+    'emotional_state', 'followed_plan', 'grade',
+    'thesis', 'thoughts_during', 'lesson_learned',
+    'created_at', 'closed_at',
+  ];
+
+  const rows = trades.map((t) => ({ ...t, ...computePnl(t) }));
+  const lines = [columns.join(',')];
+  for (const row of rows) {
+    lines.push(columns.map((c) => csvField(row[c])).join(','));
+  }
+
+  const filename = `trenching-journal-trades-${new Date().toISOString().slice(0, 10)}.csv`;
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.send(lines.join('\r\n'));
 });
 
 // Replaces every row in `table` with `rows` from the import file. Column
@@ -59,20 +100,21 @@ function importRows(table, rows) {
   return count;
 }
 
-// POST /api/backup/import — replaces trades and/or journal_entries with
-// whatever arrays are present in the uploaded file. Whichever key is
-// missing from the file is left untouched here (rather than wiped), so a
-// partial/hand-edited export doesn't silently blow away the other table.
+// POST /api/backup/import — replaces trades, journal_entries, and/or
+// wallets with whatever arrays are present in the uploaded file. Whichever
+// key is missing from the file is left untouched here (rather than wiped),
+// so a partial/hand-edited export doesn't silently blow away the others.
 router.post('/import', (req, res) => {
-  const { trades, journal_entries } = req.body || {};
+  const { trades, journal_entries, wallets } = req.body || {};
 
-  if (!Array.isArray(trades) && !Array.isArray(journal_entries)) {
+  if (!Array.isArray(trades) && !Array.isArray(journal_entries) && !Array.isArray(wallets)) {
     return res.status(400).json({ error: "That doesn't look like a Trenching Journal export file." });
   }
 
   const result = {};
   if (Array.isArray(trades)) result.tradesImported = importRows('trades', trades);
   if (Array.isArray(journal_entries)) result.journalEntriesImported = importRows('journal_entries', journal_entries);
+  if (Array.isArray(wallets)) result.walletsImported = importRows('wallets', wallets);
   res.json(result);
 });
 
