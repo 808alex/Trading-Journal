@@ -113,6 +113,11 @@ function switchToView(viewName) {
   }
   if (viewName === 'dashboard') loadDashboard();
   if (viewName === 'achievements') loadAchievements();
+  // Paste-the-address-first is the fast path, so land there -- but not on a
+  // touch screen, where that would throw the keyboard up unasked.
+  if (viewName === 'add' && window.matchMedia('(pointer: fine)').matches) {
+    document.getElementById('contract_address').focus();
+  }
 }
 
 document.getElementById('back-btn').addEventListener('click', () => switchToView('dashboard'));
@@ -255,6 +260,54 @@ function editedTag(row) {
 const addForm = document.getElementById('add-trade-form');
 const addStatus = document.getElementById('add-trade-status');
 
+// ---------- Log Trade: auto "% risked" + collapsible exit section ----------
+const amountInvestedInput = document.getElementById('amount_invested');
+const percentRiskedInput = document.getElementById('percent_risked');
+const percentRiskedHint = document.getElementById('percent-risked-hint');
+const exitDetails = document.getElementById('add-exit-details');
+const saveOpenBtn = document.getElementById('save-open-btn');
+const saveClosedBtn = document.getElementById('save-closed-btn');
+let percentRiskedEdited = false; // true once the user types their own number
+
+function getPortfolioSol() {
+  const n = Number(localStorage.getItem('portfolioSol'));
+  return n > 0 ? n : null;
+}
+
+// With a portfolio size saved in Settings, "% risked" is just amount ÷
+// portfolio -- so it fills itself in, until the user types their own value.
+function refreshPercentRisked() {
+  const portfolio = getPortfolioSol();
+  percentRiskedHint.textContent = portfolio
+    ? `Auto-filled from your ${portfolio} SOL portfolio. Type to override.`
+    : 'Tip: set your portfolio size in Settings and this fills itself in.';
+  if (!portfolio || percentRiskedEdited) return;
+  const amount = Number(amountInvestedInput.value);
+  percentRiskedInput.value = amount > 0 ? String(Math.round((amount / portfolio) * 10000) / 100) : '';
+}
+
+amountInvestedInput.addEventListener('input', refreshPercentRisked);
+percentRiskedInput.addEventListener('input', () => {
+  percentRiskedEdited = percentRiskedInput.value !== '';
+  if (!percentRiskedEdited) refreshPercentRisked();
+});
+addForm.addEventListener('reset', () => {
+  percentRiskedEdited = false;
+  setTimeout(refreshPercentRisked, 0); // the inputs are cleared just after this event
+});
+
+// Exit & reflection stays out of the way for a live entry. "Log & Close" only
+// makes sense once that section is open, so it appears with it and "Save as
+// Open" is the primary action the rest of the time.
+function syncExitSection() {
+  const open = exitDetails.open;
+  saveClosedBtn.classList.toggle('hidden', !open);
+  saveOpenBtn.classList.toggle('btn-primary', !open);
+  saveOpenBtn.classList.toggle('btn-secondary', open);
+}
+exitDetails.addEventListener('toggle', syncExitSection);
+refreshPercentRisked();
+
 const addScreenshot = wireScreenshotField(
   { previewId: 'add-screenshot-preview', uploadBtnId: 'add-screenshot-upload', removeBtnId: 'add-screenshot-remove', fileId: 'add-screenshot-file', pasteBtnId: 'add-screenshot-paste' },
   null,
@@ -391,6 +444,7 @@ addForm.addEventListener('submit', async (e) => {
       group.querySelector('.toggle-btn').classList.add('active');
     });
     addScreenshot.reset();
+    exitDetails.open = false;
     dexscreenerLastAddress = null;
     dexscreenerStatus.textContent = '';
     hideDexInfo();
@@ -1760,7 +1814,7 @@ async function downloadFromApi(url, fallbackFilename, transform) {
 // account). Folded into the JSON export/import so restoring a backup also
 // brings back your name, photo, theme, and currency setup, not just the
 // trade data -- not part of the CSV export, which is trades-only by design.
-const SETTINGS_KEYS = ['displayName', 'profilePicture', 'appTheme', 'defaultCurrency', 'displayMode', 'solPrices', 'onboardingComplete'];
+const SETTINGS_KEYS = ['displayName', 'profilePicture', 'appTheme', 'defaultCurrency', 'displayMode', 'solPrices', 'portfolioSol', 'onboardingComplete'];
 
 function readSettingsForExport() {
   const settings = {};
@@ -2167,6 +2221,17 @@ refreshCurrencyToggleLabels();
 settingsCurrencySelect.value = defaultCurrency;
 updateCurrencyPriceField();
 refreshCurrencyToggleLabels();
+
+// Portfolio size: saved as you type (like the display name), and the Log
+// Trade form re-derives "% risked" from it straight away.
+const settingsPortfolioInput = document.getElementById('settings-portfolio');
+settingsPortfolioInput.value = localStorage.getItem('portfolioSol') || '';
+settingsPortfolioInput.addEventListener('input', () => {
+  const size = Number(settingsPortfolioInput.value);
+  if (size > 0) localStorage.setItem('portfolioSol', String(size));
+  else localStorage.removeItem('portfolioSol');
+  refreshPercentRisked();
+});
 
 settingsCurrencySelect.addEventListener('change', () => {
   defaultCurrency = settingsCurrencySelect.value;

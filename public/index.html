@@ -119,20 +119,19 @@
     <!-- ADD / LOG TRADE VIEW -->
     <section id="view-add" class="view">
       <h2>Log a Trade</h2>
-      <p class="hint">Fill in entry details, and exit + reflection too if the trade's already done — no need to come back later.</p>
+      <p class="hint">Log the entry now and close it out later from the Today screen. If the trade's already done, open the exit section at the bottom.</p>
       <form id="add-trade-form">
-        <div class="field-row">
-          <div class="field">
-            <label for="coin_name">Coin name *</label>
-            <input type="text" id="coin_name" name="coin_name" required>
-          </div>
-          <div class="field">
-            <label for="contract_address">Contract address *</label>
-            <input type="text" id="contract_address" name="contract_address" required>
-          </div>
+        <div class="field">
+          <label for="contract_address">Contract address *</label>
+          <input type="text" id="contract_address" name="contract_address" placeholder="Paste it first and the coin name fills in" autocomplete="off" required>
         </div>
         <p id="dexscreener-status" class="status-msg"></p>
         <div id="dexscreener-info" class="dex-info-panel hidden"></div>
+
+        <div class="field">
+          <label for="coin_name">Coin name *</label>
+          <input type="text" id="coin_name" name="coin_name" required>
+        </div>
 
         <div class="field">
           <label>Entry value *</label>
@@ -151,6 +150,7 @@
           <div class="field">
             <label for="percent_risked">% of portfolio risked *</label>
             <input type="number" step="any" id="percent_risked" name="percent_risked" required>
+            <p id="percent-risked-hint" class="field-hint"></p>
           </div>
         </div>
 
@@ -185,9 +185,9 @@
           </div>
         </div>
 
-        <hr class="section-divider">
-        <h3>Exit &amp; Reflection <span class="hint-inline">— trade already done? Fill this in now and close it below.</span></h3>
-
+        <details id="add-exit-details" class="exit-details">
+          <summary>Trade already done? Add the exit &amp; reflection</summary>
+          <div class="exit-details-body">
         <div class="field">
           <label>Exit value</label>
           <div class="value-toggle" data-toggle-group="exit">
@@ -233,10 +233,12 @@
             <option value="D">D</option>
           </select>
         </div>
+          </div>
+        </details>
 
         <div class="form-actions">
-          <button type="submit" id="save-open-btn" class="btn-secondary" data-status="open">Save as Open</button>
-          <button type="submit" id="save-closed-btn" class="btn-primary" data-status="closed">Log &amp; Close Trade</button>
+          <button type="submit" id="save-open-btn" class="btn-primary" data-status="open">Save as Open</button>
+          <button type="submit" id="save-closed-btn" class="btn-primary hidden" data-status="closed">Log &amp; Close Trade</button>
         </div>
         <p id="add-trade-status" class="status-msg"></p>
       </form>
@@ -433,6 +435,13 @@
           </div>
           <p id="settings-sol-price-status" class="status-msg"></p>
         </div>
+      </div>
+
+      <h3>Portfolio</h3>
+      <p class="hint">Optional. With your portfolio size set, "% of portfolio risked" fills itself in when you log a trade (amount &divide; portfolio). You can still overwrite it on any trade.</p>
+      <div class="field">
+        <label for="settings-portfolio">Portfolio size (SOL)</label>
+        <input type="number" step="any" min="0" id="settings-portfolio" placeholder="e.g. 25">
       </div>
 
       <h3>Theme</h3>
