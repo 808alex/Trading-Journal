@@ -333,6 +333,37 @@
           <label for="journal-lessons">Lessons of the day</label>
           <textarea id="journal-lessons" rows="2"></textarea>
         </div>
+
+        <div class="checkin">
+          <h3>End-of-day check-in</h3>
+          <p class="hint">A minute at most. Tomorrow's Today screen builds its focus from these.</p>
+          <div class="field">
+            <label for="journal-workon-1">Work on tomorrow <span class="hint-inline">(up to 3)</span></label>
+            <input type="text" id="journal-workon-1" class="journal-workon" maxlength="200" placeholder="e.g. Wait for confirmation before entering">
+            <input type="text" id="journal-workon-2" class="journal-workon" maxlength="200">
+            <input type="text" id="journal-workon-3" class="journal-workon" maxlength="200">
+          </div>
+          <div class="field">
+            <label id="journal-sleep-label">Sleep last night</label>
+            <div class="segmented" id="journal-sleep-group" role="group" aria-labelledby="journal-sleep-label">
+              <button type="button" class="toggle-btn" data-value="1">1</button>
+              <button type="button" class="toggle-btn" data-value="2">2</button>
+              <button type="button" class="toggle-btn" data-value="3">3</button>
+              <button type="button" class="toggle-btn" data-value="4">4</button>
+              <button type="button" class="toggle-btn" data-value="5">5</button>
+            </div>
+            <p class="hint">1 = barely slept, 5 = fully rested. Click again to clear.</p>
+          </div>
+          <div class="field">
+            <label id="journal-rules-label">Did you stick to your rules today?</label>
+            <div class="segmented" id="journal-rules-group" role="group" aria-labelledby="journal-rules-label">
+              <button type="button" class="toggle-btn" data-value="yes">Yes</button>
+              <button type="button" class="toggle-btn" data-value="partly">Partly</button>
+              <button type="button" class="toggle-btn" data-value="no">No</button>
+            </div>
+          </div>
+        </div>
+
         <div class="form-actions">
           <button type="submit" class="btn-primary">Save Entry</button>
           <button type="button" id="journal-new" class="btn-secondary">New Entry</button>

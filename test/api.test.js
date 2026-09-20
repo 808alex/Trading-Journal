@@ -88,6 +88,46 @@ test('the daily summary reports a trade closed today, and rejects a bad date', a
   assert.equal((await server.get(`/api/daily/${today}?tz=Mars/Olympus_Mons`)).status, 200);
 });
 
+test('journal check-in fields round-trip, are tidied, and are validated', async () => {
+  const date = '2026-02-02';
+  const saved = await server.post('/api/journal', {
+    entry_date: date,
+    work_on: ['  Wait for confirmation ', '', 'Smaller size', 'Third', 'Fourth is dropped'],
+    sleep_rating: 4,
+    rules_followed: 'partly',
+  });
+  assert.equal(saved.status, 201);
+  assert.equal(saved.data.work_on, 'Wait for confirmation\nSmaller size\nThird');
+  assert.equal(saved.data.sleep_rating, 4);
+  assert.equal(saved.data.rules_followed, 'partly');
+
+  assert.equal((await server.post('/api/journal', { entry_date: date, sleep_rating: 6 })).status, 400);
+  assert.equal((await server.post('/api/journal', { entry_date: date, sleep_rating: 2.5 })).status, 400);
+  assert.equal((await server.post('/api/journal', { entry_date: date, rules_followed: 'maybe' })).status, 400);
+});
+
+test('a partial journal save keeps the rest of the entry; only an explicit null clears', async () => {
+  const date = '2026-02-03';
+  await server.post('/api/journal', {
+    entry_date: date, title: 'Kept', lessons: 'Also kept', work_on: 'Be patient', sleep_rating: 3, rules_followed: 'yes',
+  });
+
+  // What the list's star button sends: no check-in fields at all.
+  const starred = await server.post('/api/journal', { entry_date: date, starred: true });
+  assert.equal(starred.data.starred, 1);
+  assert.equal(starred.data.title, 'Kept');
+  assert.equal(starred.data.lessons, 'Also kept');
+  assert.equal(starred.data.work_on, 'Be patient');
+  assert.equal(starred.data.sleep_rating, 3);
+  assert.equal(starred.data.rules_followed, 'yes');
+
+  const cleared = await server.post('/api/journal', { entry_date: date, sleep_rating: null, work_on: null });
+  assert.equal(cleared.data.sleep_rating, null);
+  assert.equal(cleared.data.work_on, null);
+  assert.equal(cleared.data.title, 'Kept');
+  assert.equal(cleared.data.rules_followed, 'yes');
+});
+
 test('journal rejects a malformed date', async () => {
   const res = await server.post('/api/journal', { entry_date: '15/01/2026' });
   assert.equal(res.status, 400);
@@ -122,4 +162,9 @@ test('an exported backup can be re-imported after a reset', async () => {
   const imported = await server.post('/api/backup/import', exported);
   assert.equal(imported.status, 200);
   assert.equal((await server.get('/api/trades')).data.length, before);
+
+  // Check-in fields survive the trip too.
+  const checkin = (await server.get('/api/journal/2026-02-02')).data;
+  assert.equal(checkin.sleep_rating, 4);
+  assert.equal(checkin.rules_followed, 'partly');
 });
