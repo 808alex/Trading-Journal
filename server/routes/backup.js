@@ -111,10 +111,20 @@ router.post('/import', (req, res) => {
     return res.status(400).json({ error: "That doesn't look like a Trenching Journal export file." });
   }
 
+  // One transaction for the whole import: importRows() deletes the existing
+  // rows before inserting, so without this a single bad row in the file
+  // would leave the user with their old data wiped and only part of the new.
   const result = {};
-  if (Array.isArray(trades)) result.tradesImported = importRows('trades', trades);
-  if (Array.isArray(journal_entries)) result.journalEntriesImported = importRows('journal_entries', journal_entries);
-  if (Array.isArray(wallets)) result.walletsImported = importRows('wallets', wallets);
+  db.exec('BEGIN');
+  try {
+    if (Array.isArray(trades)) result.tradesImported = importRows('trades', trades);
+    if (Array.isArray(journal_entries)) result.journalEntriesImported = importRows('journal_entries', journal_entries);
+    if (Array.isArray(wallets)) result.walletsImported = importRows('wallets', wallets);
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    return res.status(400).json({ error: `Import failed, so nothing was changed. (${err.message})` });
+  }
   res.json(result);
 });
 
