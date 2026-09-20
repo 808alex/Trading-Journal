@@ -406,7 +406,7 @@ const closedTradeListEl = document.getElementById('closed-trade-list');
 function renderTradeCard(t) {
   const card = document.createElement('div');
   card.className = 'trade-card';
-  const date = (t.closed_at || t.created_at).slice(0, 10);
+  const date = TrenchDates.dayOf(t.closed_at || t.created_at);
   card.innerHTML = `
     <div class="trade-card-top">
       <span class="coin">${escapeHtml(t.coin_name)}
@@ -434,8 +434,6 @@ async function loadTradeList() {
 
   const params = new URLSearchParams();
   if (q) params.set('q', q);
-  if (from) params.set('from', from);
-  if (to) params.set('to', to);
   if (grade) params.set('grade', grade);
 
   let trades;
@@ -446,6 +444,15 @@ async function loadTradeList() {
     tradeListErrorEl.textContent = `Couldn't load trades: ${err.message}. Is the server running?`;
     tradeListErrorEl.classList.remove('hidden');
     return;
+  }
+
+  // The date range is applied here, not in the API: the server only knows
+  // UTC, but these pickers are days on the user's own calendar.
+  if (from || to) {
+    trades = trades.filter((t) => {
+      const day = TrenchDates.dayOf(t.closed_at || t.created_at);
+      return (!from || day >= from) && (!to || day <= to);
+    });
   }
 
   const open = trades.filter((t) => t.status === 'open');
@@ -714,7 +721,7 @@ async function loadTotals() {
   const openCount = trades.filter((t) => t.status === 'open').length;
   const closed = trades
     .filter((t) => t.status === 'closed')
-    .filter((t) => isInPeriod((t.closed_at || t.created_at).slice(0, 10), totalsPeriod));
+    .filter((t) => isInPeriod(TrenchDates.dayOf(t.closed_at || t.created_at), totalsPeriod));
 
   const totalPnl = closed.reduce((sum, t) => sum + (t.pnl_amount || 0), 0);
   const wins = closed.filter((t) => t.pnl_amount > 0).length;
@@ -793,7 +800,7 @@ async function loadCalendar() {
 
   const byDay = {};
   closed.forEach((t) => {
-    const day = (t.closed_at || t.created_at).slice(0, 10);
+    const day = TrenchDates.dayOf(t.closed_at || t.created_at);
     byDay[day] = (byDay[day] || 0) + (t.pnl_amount || 0);
   });
 
