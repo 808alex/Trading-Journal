@@ -24,6 +24,7 @@ app.use('/api/achievements', achievementsRouter);
 app.use('/api/solprice', solpriceRouter);
 app.use('/api/backup', backupRouter);
 app.use('/api/wallets', walletsRouter);
+app.use('/shared', express.static(path.join(__dirname, '..', 'shared')));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.listen(PORT, () => {
