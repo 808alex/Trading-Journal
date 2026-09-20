@@ -21,7 +21,7 @@
     </button>
     <h1>Trenching Journal</h1>
     <div class="header-actions">
-      <button id="back-btn" class="back-btn hidden">&larr; Back</button>
+      <button id="back-btn" class="back-btn hidden" aria-label="Back to Today">&larr; <span class="back-label">Back</span></button>
       <button id="settings-icon-btn" class="icon-btn" aria-label="Settings" title="Settings">&#9881;</button>
     </div>
   </header>
@@ -316,7 +316,7 @@
             <input type="date" id="journal-date" required>
           </div>
           <div class="field">
-            <label>&nbsp;</label>
+            <label class="label-spacer">&nbsp;</label>
             <button type="button" id="journal-star-btn" class="star-toggle-btn" aria-pressed="false">&#9734; Star this entry</button>
           </div>
         </div>
@@ -376,7 +376,7 @@
         <p id="journal-status" class="status-msg"></p>
       </form>
 
-      <h3>Past Entries</h3>
+      <h3 class="list-heading">Past Entries</h3>
       <p id="journal-list-error" class="status-msg error hidden"></p>
       <div id="journal-list" class="trade-list"></div>
     </section>
