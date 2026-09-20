@@ -1224,6 +1224,94 @@ h3 {
   line-height: 1.5;
 }
 
+/* ---------- Journal: automatic day summary ---------- */
+.day-summary {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 0 0 1.25rem;
+}
+
+.day-summary:empty { display: none; }
+
+.day-summary-title {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.75rem;
+}
+
+.day-summary .hint { margin: 0; }
+
+.day-summary-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.day-tile {
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.55rem 0.7rem;
+  min-width: 0;
+}
+
+.day-tile-value { font-size: 1rem; font-weight: 600; overflow-wrap: anywhere; }
+.day-tile-label { font-size: 0.72rem; color: var(--text-dim); margin-top: 0.1rem; }
+
+.day-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.4rem 0;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.day-line > span:first-child { color: var(--text-dim); }
+.day-line > span:last-child { text-align: right; }
+
+.day-trades {
+  margin-top: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.day-trade-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.day-trade-row:hover,
+.day-trade-row:focus-visible {
+  border-color: var(--accent);
+  background: var(--panel-alt);
+  outline: none;
+}
+
+.day-trade-name { font-weight: 600; }
+.day-trade-meta,
+.day-trade-state { color: var(--text-dim); font-size: 0.78rem; }
+
+@media (max-width: 520px) {
+  .day-summary-tiles { grid-template-columns: repeat(2, 1fr); }
+  .day-trade-row { grid-template-columns: 1fr auto; }
+  .day-trade-meta { display: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;

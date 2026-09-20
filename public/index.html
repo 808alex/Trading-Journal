@@ -300,7 +300,7 @@
     <!-- DAILY JOURNAL VIEW -->
     <section id="view-journal" class="view">
       <h2>Daily Journal</h2>
-      <p class="hint">One entry per day &mdash; separate from individual trades. Click a past entry below to read or edit it; saving on a date that already has an entry updates it.</p>
+      <p class="hint">One entry per day. The summary under the date fills in by itself from that day's trades. Click a past entry below to read or edit it; saving on a date that already has an entry updates it.</p>
       <form id="journal-form">
         <div class="field">
           <label for="journal-title">Title</label>
@@ -316,6 +316,7 @@
             <button type="button" id="journal-star-btn" class="star-toggle-btn" aria-pressed="false">&#9734; Star this entry</button>
           </div>
         </div>
+        <div id="journal-day-summary" class="day-summary" aria-live="polite"></div>
         <div class="field">
           <label for="journal-narrative">Market narrative / meta trends today</label>
           <textarea id="journal-narrative" rows="2" placeholder="What was pumping, what narrative was dominant..."></textarea>

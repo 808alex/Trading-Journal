@@ -84,5 +84,11 @@
     }
   }
 
-  return { dayOf, todayIn, formatDateTime, shiftDay, isValidTimeZone };
+  // A client-supplied timezone name if it is a real IANA zone, otherwise
+  // undefined (which means "the runtime's own timezone").
+  function resolveTimeZone(value) {
+    return typeof value === 'string' && value && isValidTimeZone(value) ? value : undefined;
+  }
+
+  return { dayOf, todayIn, formatDateTime, shiftDay, isValidTimeZone, resolveTimeZone };
 });

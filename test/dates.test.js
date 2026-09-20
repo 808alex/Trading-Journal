@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { dayOf, formatDateTime, shiftDay, isValidTimeZone } = require('../shared/dates');
+const { dayOf, formatDateTime, shiftDay, isValidTimeZone, resolveTimeZone } = require('../shared/dates');
 
 // 23:30 UTC on 19 Sep is already the 20th in Dublin (BST, UTC+1) and Tokyo,
 // but still the 19th in New York (EDT, UTC-4).
@@ -56,4 +56,12 @@ test('shiftDay crosses month, year and leap-day boundaries', () => {
 test('isValidTimeZone accepts IANA names and rejects junk', () => {
   assert.equal(isValidTimeZone('Europe/Dublin'), true);
   assert.equal(isValidTimeZone('Mars/Olympus_Mons'), false);
+});
+
+test('resolveTimeZone only passes through real zone names', () => {
+  assert.equal(resolveTimeZone('Asia/Tokyo'), 'Asia/Tokyo');
+  assert.equal(resolveTimeZone('Mars/Olympus_Mons'), undefined);
+  assert.equal(resolveTimeZone(''), undefined);
+  assert.equal(resolveTimeZone(undefined), undefined);
+  assert.equal(resolveTimeZone(['Asia/Tokyo']), undefined);
 });
