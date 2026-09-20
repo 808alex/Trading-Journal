@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { dayOf, shiftDay, isValidTimeZone } = require('../shared/dates');
+const { dayOf, formatDateTime, shiftDay, isValidTimeZone } = require('../shared/dates');
 
 // 23:30 UTC on 19 Sep is already the 20th in Dublin (BST, UTC+1) and Tokyo,
 // but still the 19th in New York (EDT, UTC-4).
@@ -25,6 +25,16 @@ test('an evening trade in New York belongs to that evening, not the next UTC day
 
 test('daylight saving is respected: Dublin is UTC+0 in winter', () => {
   assert.equal(dayOf('2026-12-19 23:30:00', 'Europe/Dublin'), '2026-12-19');
+});
+
+test('formatDateTime shows the wall-clock time in the requested timezone', () => {
+  assert.equal(formatDateTime('2026-09-19 23:30:00', 'UTC'), '2026-09-19 23:30');
+  assert.equal(formatDateTime('2026-09-19 23:30:00', 'Europe/Dublin'), '2026-09-20 00:30');
+  assert.equal(formatDateTime('2026-09-19T23:30:00.000Z', 'America/New_York'), '2026-09-19 19:30');
+});
+
+test('formatDateTime shows midnight as 00:00, never 24:00', () => {
+  assert.equal(formatDateTime('2026-09-20 00:00:00', 'UTC'), '2026-09-20 00:00');
 });
 
 test('a bare date passes through unchanged', () => {

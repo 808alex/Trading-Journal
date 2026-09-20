@@ -47,6 +47,26 @@
     return dayOf(new Date(), timeZone);
   }
 
+  // 'YYYY-MM-DD HH:mm' for showing a stored timestamp to a person, in their
+  // timezone (the raw string is UTC, which reads as the wrong hour locally).
+  function formatDateTime(timestamp, timeZone) {
+    const date = toDate(timestamp);
+    if (Number.isNaN(date.getTime())) return String(timestamp).slice(0, 16).replace('T', ' ');
+
+    const key = `dt:${timeZone || ''}`;
+    if (!formatters.has(key)) {
+      formatters.set(
+        key,
+        new Intl.DateTimeFormat('en-US', {
+          timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+        })
+      );
+    }
+    const parts = {};
+    for (const p of formatters.get(key).formatToParts(date)) parts[p.type] = p.value;
+    return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}`;
+  }
+
   // Pure calendar arithmetic on a YYYY-MM-DD string (done in UTC so daylight
   // saving changes can never skip or repeat a day).
   function shiftDay(day, deltaDays) {
@@ -64,5 +84,5 @@
     }
   }
 
-  return { dayOf, todayIn, shiftDay, isValidTimeZone };
+  return { dayOf, todayIn, formatDateTime, shiftDay, isValidTimeZone };
 });

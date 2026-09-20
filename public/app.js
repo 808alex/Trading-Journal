@@ -244,7 +244,7 @@ function escapeHtml(str) {
 // sort order anywhere; it's purely a label.
 function editedTag(row) {
   if (!row.updated_at) return '';
-  const when = row.updated_at.slice(0, 16).replace('T', ' ');
+  const when = TrenchDates.formatDateTime(row.updated_at);
   return ` <span class="edited-tag" title="Last edited ${escapeHtml(when)}">(edited)</span>`;
 }
 
@@ -516,7 +516,7 @@ async function openTradeModal(id) {
   modalBody.innerHTML = `
     <h2>${escapeHtml(t.coin_name)}</h2>
     <p class="hint">${escapeHtml(t.contract_address)}</p>
-    <p class="hint">Logged ${t.created_at.slice(0, 16).replace('T', ' ')} · Status: ${t.status}${editedTag(t)}</p>
+    <p class="hint">Logged ${TrenchDates.formatDateTime(t.created_at)} · Status: ${t.status}${editedTag(t)}</p>
 
     <div class="field-row">
       <div class="field"><label>Coin name</label><input type="text" id="m-coin_name" value="${escapeHtml(t.coin_name)}"></div>
