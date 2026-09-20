@@ -21,7 +21,7 @@ A personal, local, single-user paper-trading journal for memecoin/crypto trades 
 
 ## 🧰 Requirements
 
-- [Node.js](https://nodejs.org) 22.5 or newer.
+- [Node.js](https://nodejs.org) 22.13 or newer (the current LTS is fine). The app stores everything with Node's built-in SQLite, which only works without extra flags from 22.13.
 
 ---
 

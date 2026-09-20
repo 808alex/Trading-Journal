@@ -1,4 +1,15 @@
-const { DatabaseSync } = require('node:sqlite');
+let DatabaseSync;
+try {
+  ({ DatabaseSync } = require('node:sqlite'));
+} catch {
+  // node:sqlite only works without a flag from Node 22.13; older versions
+  // throw a cryptic ERR_UNKNOWN_BUILTIN_MODULE, so say what's actually wrong.
+  console.error(
+    `\nTrenching Journal needs Node.js 22.13 or newer, and this is ${process.version}.\n` +
+      'Get the current LTS from https://nodejs.org, then start the app again.\n'
+  );
+  process.exit(1);
+}
 const path = require('node:path');
 const fs = require('node:fs');
 
