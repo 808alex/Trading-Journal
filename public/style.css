@@ -1200,6 +1200,40 @@ h3 {
   line-height: 1.5;
 }
 
+/* ---------- Log Trade: collapsible exit & reflection ---------- */
+.field-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+.exit-details {
+  margin: 0.5rem 0 1.25rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.exit-details > summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 0.85rem 1rem;
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  list-style: none;
+  transition: color 150ms ease;
+}
+
+.exit-details > summary::-webkit-details-marker { display: none; }
+.exit-details > summary::after { content: '\25B8'; }
+.exit-details > summary:hover { color: var(--text); }
+.exit-details[open] > summary { color: var(--text); border-bottom: 1px solid var(--border); }
+.exit-details[open] > summary::after { content: '\25BE'; }
+
+.exit-details-body { padding: 1rem 1rem 0.25rem; }
+
 /* ---------- Today (home screen) ---------- */
 .today-actions {
   display: flex;
