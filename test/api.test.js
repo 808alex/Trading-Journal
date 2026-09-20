@@ -88,6 +88,29 @@ test('the daily summary reports a trade closed today, and rejects a bad date', a
   assert.equal((await server.get(`/api/daily/${today}?tz=Mars/Olympus_Mons`)).status, 200);
 });
 
+test('the today endpoint bundles summary, open positions, focus and journal state', async () => {
+  const { todayIn } = require('../shared/dates');
+  const today = todayIn('UTC');
+
+  const open = await server.post('/api/trades', { ...baseTrade, coin_name: 'STILLHOLDING' });
+  assert.equal(open.status, 201);
+
+  const before = (await server.get('/api/today?tz=UTC')).data;
+  assert.equal(before.date, today);
+  assert.equal(before.summary.date, today);
+  assert.ok(before.openPositions.some((p) => p.coin_name === 'STILLHOLDING'));
+  assert.ok(Array.isArray(before.focus.callouts));
+  assert.deepEqual(before.journal, { hasEntry: false, hasCheckIn: false });
+  assert.ok(!('screenshot' in before.openPositions[0]), 'positions must not carry screenshots');
+
+  await server.post('/api/journal', { entry_date: today, work_on: ['Stay patient'] });
+  const after = (await server.get('/api/today?tz=UTC')).data;
+  assert.deepEqual(after.journal, { hasEntry: true, hasCheckIn: true });
+
+  await server.del(`/api/journal/${today}`);
+  await server.del(`/api/trades/${open.data.id}`);
+});
+
 test('journal check-in fields round-trip, are tidied, and are validated', async () => {
   const date = '2026-02-02';
   const saved = await server.post('/api/journal', {
