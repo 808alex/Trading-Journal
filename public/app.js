@@ -944,6 +944,57 @@ async function refreshJournalDaySummary() {
   }
 }
 
+// ---------- Journal: end-of-day check-in ----------
+// Segmented buttons where at most one is active and clicking the active one
+// clears it (so "no answer" stays possible). Deliberately not the
+// .value-toggle class: initValueToggles() makes those always-one-selected.
+function wireSegmented(groupId) {
+  const group = document.getElementById(groupId);
+  const buttons = [...group.querySelectorAll('.toggle-btn')];
+  const set = (value) => {
+    buttons.forEach((b) => {
+      const on = value != null && b.dataset.value === String(value);
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+  };
+  group.addEventListener('click', (e) => {
+    const btn = e.target.closest('.toggle-btn');
+    if (!btn) return;
+    set(btn.classList.contains('active') ? null : btn.dataset.value);
+  });
+  set(null);
+  return { set, get: () => buttons.find((b) => b.classList.contains('active'))?.dataset.value ?? null };
+}
+
+const journalSleep = wireSegmented('journal-sleep-group');
+const journalRules = wireSegmented('journal-rules-group');
+const journalWorkOnInputs = [1, 2, 3].map((n) => document.getElementById(`journal-workon-${n}`));
+
+function setCheckinFields(entry) {
+  const items = (entry?.work_on || '').split('\n');
+  journalWorkOnInputs.forEach((input, i) => { input.value = items[i] || ''; });
+  journalSleep.set(entry?.sleep_rating ?? null);
+  journalRules.set(entry?.rules_followed ?? null);
+}
+
+const RULES_LABELS = { yes: 'Yes', partly: 'Partly', no: 'No' };
+
+function journalCheckinView(entry) {
+  const items = (entry.work_on || '').split('\n').filter(Boolean);
+  const parts = [];
+  if (items.length) {
+    parts.push(
+      `<div class="view-field"><div class="view-field-label">Work on tomorrow</div><ul class="bullet-list">${items
+        .map((i) => `<li>${escapeHtml(i)}</li>`)
+        .join('')}</ul></div>`
+    );
+  }
+  if (entry.sleep_rating) parts.push(journalField('Sleep last night', `${entry.sleep_rating} / 5`));
+  if (entry.rules_followed) parts.push(journalField('Stuck to my rules', RULES_LABELS[entry.rules_followed]));
+  return parts.join('');
+}
+
 let journalStarred = false;
 
 function setJournalStar(starred) {
@@ -965,6 +1016,7 @@ function resetJournalForm(date) {
   document.getElementById('journal-volume').value = '';
   document.getElementById('journal-challenges').value = '';
   document.getElementById('journal-lessons').value = '';
+  setCheckinFields(null);
   setJournalStar(false);
   journalDeleteBtn.classList.add('hidden');
   journalStatus.textContent = '';
@@ -983,6 +1035,7 @@ async function loadJournalEntryIntoForm(date) {
     document.getElementById('journal-volume').value = entry.volume ?? '';
     document.getElementById('journal-challenges').value = entry.challenges ?? '';
     document.getElementById('journal-lessons').value = entry.lessons ?? '';
+    setCheckinFields(entry);
     setJournalStar(!!entry.starred);
     journalDeleteBtn.classList.remove('hidden');
     journalStatus.textContent = '';
@@ -1006,6 +1059,9 @@ journalForm.addEventListener('submit', async (e) => {
     volume: document.getElementById('journal-volume').value || null,
     challenges: document.getElementById('journal-challenges').value || null,
     lessons: document.getElementById('journal-lessons').value || null,
+    work_on: journalWorkOnInputs.map((input) => input.value.trim()).filter(Boolean),
+    sleep_rating: journalSleep.get() == null ? null : Number(journalSleep.get()),
+    rules_followed: journalRules.get(),
     starred: journalStarred,
   };
 
@@ -1066,7 +1122,8 @@ async function loadJournalList() {
   }
 
   entries.forEach((e) => {
-    const preview = e.narrative || e.lessons || e.challenges || '(no notes)';
+    const workOnFirst = (e.work_on || '').split('\n')[0];
+    const preview = e.narrative || e.lessons || e.challenges || (workOnFirst ? `Work on: ${workOnFirst}` : '(no notes)');
     const heading = e.title ? e.title : e.entry_date;
     const card = document.createElement('div');
     card.className = 'trade-card';
@@ -1106,7 +1163,8 @@ function journalField(label, value) {
 
 function openJournalViewModal(entry) {
   const heading = entry.title || entry.entry_date;
-  const hasNotes = entry.narrative || entry.volume || entry.challenges || entry.lessons;
+  const hasNotes =
+    entry.narrative || entry.volume || entry.challenges || entry.lessons || entry.work_on || entry.sleep_rating || entry.rules_followed;
 
   modalBody.innerHTML = `
     <h2>${escapeHtml(heading)}</h2>
@@ -1115,6 +1173,7 @@ function openJournalViewModal(entry) {
     ${journalField('Volume / activity', entry.volume)}
     ${journalField('Challenges faced', entry.challenges)}
     ${journalField('Lessons of the day', entry.lessons)}
+    ${journalCheckinView(entry)}
     ${hasNotes ? '' : '<p class="hint">No notes on this entry.</p>'}
     <div class="form-actions">
       <button type="button" id="jv-edit" class="btn-primary">Edit</button>

@@ -62,6 +62,9 @@ test('an old-schema database is upgraded in place and keeps its rows', async () 
     const journal = (await server.get('/api/journal')).data;
     assert.equal(journal[0].lessons, 'old lesson');
     assert.equal(journal[0].starred, 0);
+    assert.equal(journal[0].work_on, null);
+    assert.equal(journal[0].sleep_rating, null);
+    assert.equal(journal[0].rules_followed, null);
   } finally {
     await server.stop();
     fs.rmSync(dir, { recursive: true, force: true });

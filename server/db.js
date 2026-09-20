@@ -71,6 +71,11 @@ ensureColumn('trades', 'screenshot', 'TEXT');
 ensureColumn('trades', 'updated_at', 'TEXT');
 ensureColumn('journal_entries', 'title', 'TEXT');
 ensureColumn('journal_entries', 'starred', 'INTEGER NOT NULL DEFAULT 0');
+// End-of-day check-in: what to work on tomorrow (up to 3 lines, newline-
+// separated), last night's sleep 1-5, and whether the day's rules were kept.
+ensureColumn('journal_entries', 'work_on', 'TEXT');
+ensureColumn('journal_entries', 'sleep_rating', 'INTEGER CHECK(sleep_rating BETWEEN 1 AND 5)');
+ensureColumn('journal_entries', 'rules_followed', "TEXT CHECK(rules_followed IN ('yes','partly','no'))");
 
 // wallets.label -> wallets.name: renamed for clarity shortly after the
 // column was introduced. Only matters for a database that already has the
