@@ -16,6 +16,8 @@ Fixed
 - The calendar, Total P&L and trade dates split days at UTC midnight instead of your own, so late-night trades landed on the wrong day. Trade times also showed UTC.
 - A bad row in an import file could wipe your existing data halfway through. Imports are now all-or-nothing.
 - The app needs Node 22.13 or newer, but the README said 22.5, which crashed on start. It now checks up front and tells you clearly.
+- Spacing: text no longer touches the inputs and buttons above it (for example under the sleep buttons in the check-in and under the Total P&L figure), and past entries, the menu and the help panel have more room.
+- On phones, the calendar, wallet list, Insights rows, header and first-run screen now fit properly instead of overlapping or running off the edge.
 
 ## 1.1.0
 

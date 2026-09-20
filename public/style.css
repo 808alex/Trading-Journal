@@ -277,7 +277,7 @@ body::before {
   z-index: 21;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.4rem;
   padding: 1.5rem 1rem;
   box-shadow: 12px 0 40px -20px rgba(0, 0, 0, 0.6);
   animation: slideIn 200ms ease;
@@ -381,6 +381,17 @@ input:focus, select:focus, textarea:focus {
   color: var(--text-dim);
 }
 
+/* Inside a .field the flex gap already spaces a hint from the label above
+   it, so the negative margin only made it touch (the sleep hint, the
+   screenshot tip). Under a row of buttons it gets a little extra air. */
+.field > .hint { margin: 0; }
+.field > .segmented + .hint,
+.field > .value-toggle + .hint { margin-top: 0.4rem; }
+
+/* An empty status line inside a field still reserved a gap (it showed as a
+   big blank band under the currency row in Settings). */
+.field > .status-msg:empty { display: none; }
+
 /* .hint's negative top margin is tuned for sitting snug under a form
    field's label -- reused after a plain row of buttons (no field above
    it), that same negative pull yanked the hint up into the buttons
@@ -470,6 +481,7 @@ h3 {
 
 .form-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.75rem;
   margin-top: 0.5rem;
 }
@@ -507,7 +519,16 @@ h3 {
 .journal-card-star.active { color: var(--yellow); }
 
 .journal-card-delete {
-  margin-top: 0.6rem;
+  margin-top: 0.9rem;
+}
+
+/* Room between the last button and the list that follows it. */
+.list-heading { margin: 2.25rem 0 1rem; }
+
+/* Only there to line the Star button up with the Date input; once the row
+   stacks on a phone it is just a blank gap. */
+@media (max-width: 640px) {
+  .label-spacer { display: none; }
 }
 
 .btn-primary, .btn-secondary, .btn-danger {
@@ -613,9 +634,14 @@ h3 {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.75rem;
 }
 
 .trade-card-top .coin { font-weight: 600; }
+
+/* On a phone the badges may wrap under the coin name, but the P&L figure
+   should stay on one line instead of splitting into "-0.375 SOL" / "(-25%)". */
+.trade-card-top > span:last-child:not(.coin) { white-space: nowrap; flex-shrink: 0; }
 
 .pnl-pos { color: var(--green); }
 .pnl-neg { color: var(--red); }
@@ -670,6 +696,9 @@ h3 {
   font-size: 2rem;
   font-weight: 700;
 }
+
+/* The caption under the big number used to be pulled up into it. */
+.totals-summary .hint { margin: 0.5rem 0 1rem; }
 
 .totals-summary .stat-row {
   display: flex;
@@ -778,12 +807,12 @@ h3 {
 .badge-row {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.55rem 0.75rem;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
 }
 .badge-row + .badge-row { border-top: 1px solid var(--border); }
 .badge-row-icon { font-size: 1.3rem; width: 1.6rem; text-align: center; flex-shrink: 0; }
-.badge-row-text { display: flex; flex-direction: column; gap: 0.1rem; }
+.badge-row-text { display: flex; flex-direction: column; gap: 0.25rem; }
 .badge-row-title { font-size: 0.9rem; }
 .badge-row-desc { font-size: 0.78rem; color: var(--text-dim); }
 .badge-row.locked { opacity: 0.5; }
@@ -820,12 +849,15 @@ h3 {
   margin-bottom: 0.5rem;
 }
 .wallet-row-name { font-size: 0.85rem; font-weight: 600; flex-shrink: 0; }
+/* min-width: 0 lets the address shrink and wrap instead of forcing the row
+   wider than a phone screen (which pushed the name or the remove button
+   out of view). The full address stays readable and selectable. */
 .wallet-row-address {
   font-size: 0.8rem;
   color: var(--text-dim);
-  overflow-x: auto;
-  white-space: nowrap;
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .screenshot-lightbox {
@@ -857,10 +889,14 @@ h3 {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0.5rem;
-  margin-bottom: 0.4rem;
+  margin: 0.25rem 0 0.4rem;
   display: flex;
   justify-content: center;
 }
+
+/* Keep the "No screenshot attached." text centred in its box instead of
+   pulled up against the top edge by the hint's negative margin. */
+.screenshot-preview .hint { margin: 0.4rem 0; }
 .screenshot-preview img {
   max-width: 100%;
   max-height: 320px;
@@ -1162,22 +1198,23 @@ h3 {
 }
 
 .help-panel details {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
   font-size: 0.85rem;
   border-bottom: 1px solid var(--border);
-  padding-bottom: 0.5rem;
+  padding-bottom: 0.75rem;
 }
 
 .help-panel summary {
   cursor: pointer;
   color: var(--text);
   font-weight: 600;
+  line-height: 1.4;
 }
 
 .help-panel details p {
   color: var(--text-dim);
-  margin: 0.5rem 0 0;
-  line-height: 1.4;
+  margin: 0.6rem 0 0.1rem;
+  line-height: 1.5;
 }
 
 .help-panel a.hint { display: inline-block; margin-top: 0.25rem; }
@@ -1303,7 +1340,11 @@ h3 {
   border-top: 1px solid var(--border);
 }
 
-.checkin h3 { margin-bottom: 0.4rem; }
+.checkin h3 { margin-bottom: 0.5rem; }
+
+/* Sits under the heading; the negative margin it normally has would leave
+   it touching the title, and the first field needs room below it. */
+.checkin > .hint { margin: 0 0 1.25rem; }
 
 /* Same look as .value-toggle, but its buttons may all be off. */
 .segmented {
@@ -1349,7 +1390,7 @@ h3 {
 }
 
 .day-tile-value { font-size: 1rem; font-weight: 600; overflow-wrap: anywhere; }
-.day-tile-label { font-size: 0.72rem; color: var(--text-dim); margin-top: 0.1rem; }
+.day-tile-label { font-size: 0.72rem; color: var(--text-dim); margin-top: 0.25rem; }
 
 .day-line {
   display: flex;
@@ -1360,7 +1401,7 @@ h3 {
   font-size: 0.85rem;
 }
 
-.day-line > span:first-child { color: var(--text-dim); }
+.day-line > span:first-child { color: var(--text-dim); flex-shrink: 0; }
 .day-line > span:last-child { text-align: right; }
 
 .day-trades {
@@ -1398,6 +1439,57 @@ h3 {
   .day-summary-tiles { grid-template-columns: repeat(2, 1fr); }
   .day-trade-row { grid-template-columns: 1fr auto; }
   .day-trade-meta { display: none; }
+}
+
+/* If the header is ever too narrow for its contents, the title gives way
+   (with an ellipsis) instead of pushing the whole page wider. */
+.app-header h1 { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- Phone-width breathing room ---------- */
+@media (max-width: 520px) {
+  /* 2rem of page padding left little room for content, and the title and
+     the Back button were each wrapping onto two lines. */
+  .app-header { padding: 0.9rem 1rem; gap: 0.6rem; }
+  .app-header h1 { font-size: 1.1rem; white-space: nowrap; }
+  .header-actions { gap: 0.4rem; }
+  .back-btn { white-space: nowrap; padding: 0.45rem 0.7rem; }
+  main { padding: 1.5rem 1.1rem 5rem; }
+
+  /* Insights rows: label + bar on one line and the figures underneath. The
+     single-line version was wider than a phone screen (it only stayed hidden
+     inside the old, wider page padding). */
+  .corr-row { grid-template-columns: 5.5rem 1fr; row-gap: 0.2rem; }
+  .corr-value { grid-column: 1 / -1; white-space: normal; }
+
+  /* The two toggle groups on Total P&L each carried their own margins as
+     well as the row's, leaving a wide empty band between them when stacked. */
+  #view-totals .toggle-row .value-toggle { margin: 0; }
+
+  /* Calendar: the title and month picker move to two rows (the picker's
+     arrow was being clipped off the edge), and each day is tall enough for
+     its number plus an amount instead of drawing them on top of each other. */
+  .modal-wide .totals-header { flex-wrap: wrap; row-gap: 0.6rem; }
+  .modal-wide .totals-header h2 { font-size: 1.2rem; white-space: nowrap; }
+  .cal-month-label-inline { min-width: 0; font-size: 0.95rem; }
+  .cal-month-total { font-size: 1.7rem; text-wrap: balance; }
+  .calendar-grid { gap: 4px; }
+  .cal-cell { aspect-ratio: auto; min-height: 3.6rem; }
+  .cal-cell .day-num { top: 3px; left: 5px; font-size: 0.62rem; }
+  .cal-cell .day-pnl { font-size: 0.68rem; margin-top: 0.9rem; }
+
+  /* First-run screen: the two buttons each split their label over two
+     lines. Keep each label whole and let the buttons take their own row
+     when they don't fit side by side. */
+  #onboarding-modal .form-actions button { flex: 1 1 auto; white-space: nowrap; }
+}
+
+/* Small phones (320-380px). Placed after the general phone rules above so
+   these win: the arrow alone is enough for the Back button, and the header
+   gets a little tighter so the full title still fits. */
+@media (max-width: 380px) {
+  .back-label { display: none; }
+  .app-header { gap: 0.4rem; padding: 0.8rem 0.75rem; }
+  .app-header h1 { font-size: 0.95rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
