@@ -78,6 +78,22 @@ test('journal rejects a malformed date', async () => {
   assert.equal(res.status, 400);
 });
 
+test('a failed import leaves existing data untouched instead of half-wiping it', async () => {
+  const before = (await server.get('/api/trades')).data.length;
+  assert.ok(before > 0);
+
+  const bad = {
+    trades: [
+      { ...baseTrade, emotional_state: 'calm' },
+      { ...baseTrade, emotional_state: 'not-a-real-mood' },
+    ],
+  };
+  const res = await server.post('/api/backup/import', bad);
+  assert.ok(res.status >= 400, `expected an error status, got ${res.status}`);
+
+  assert.equal((await server.get('/api/trades')).data.length, before);
+});
+
 test('an exported backup can be re-imported after a reset', async () => {
   const before = (await server.get('/api/trades')).data.length;
   assert.ok(before > 0);
