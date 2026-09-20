@@ -8,6 +8,7 @@ const achievementsRouter = require('./routes/achievements');
 const solpriceRouter = require('./routes/solprice');
 const backupRouter = require('./routes/backup');
 const walletsRouter = require('./routes/wallets');
+const dailyRouter = require('./routes/daily');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -24,6 +25,7 @@ app.use('/api/achievements', achievementsRouter);
 app.use('/api/solprice', solpriceRouter);
 app.use('/api/backup', backupRouter);
 app.use('/api/wallets', walletsRouter);
+app.use('/api/daily', dailyRouter);
 app.use('/shared', express.static(path.join(__dirname, '..', 'shared')));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 

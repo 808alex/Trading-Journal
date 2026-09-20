@@ -73,6 +73,21 @@ test('journal entries are one-per-date: saving twice updates instead of duplicat
   assert.equal(forDate[0].lessons, 'b');
 });
 
+test('the daily summary reports a trade closed today, and rejects a bad date', async () => {
+  const { todayIn } = require('../shared/dates');
+  const today = todayIn('UTC');
+
+  const res = await server.get(`/api/daily/${today}?tz=UTC`);
+  assert.equal(res.status, 200);
+  assert.equal(res.data.date, today);
+  assert.ok(res.data.closed >= 2, 'the trades closed by earlier tests should show up');
+  assert.ok(Array.isArray(res.data.moodMix));
+
+  assert.equal((await server.get('/api/daily/not-a-date')).status, 400);
+  // An invalid timezone falls back to the server's own instead of failing.
+  assert.equal((await server.get(`/api/daily/${today}?tz=Mars/Olympus_Mons`)).status, 200);
+});
+
 test('journal rejects a malformed date', async () => {
   const res = await server.post('/api/journal', { entry_date: '15/01/2026' });
   assert.equal(res.status, 400);

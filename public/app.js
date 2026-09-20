@@ -107,7 +107,10 @@ function switchToView(viewName) {
 
   if (viewName === 'list') loadTradeList();
   if (viewName === 'totals') loadTotals();
-  if (viewName === 'journal') loadJournalList();
+  if (viewName === 'journal') {
+    loadJournalList();
+    refreshJournalDaySummary();
+  }
   if (viewName === 'dashboard') loadDashboard();
   if (viewName === 'achievements') loadAchievements();
 }
@@ -861,6 +864,86 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+// ---------- Journal: automatic day summary ----------
+const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const daySummaryEl = document.getElementById('journal-day-summary');
+let daySummaryRequestId = 0;
+
+function dayTile(value, label, cls = '') {
+  return `<div class="day-tile"><div class="day-tile-value ${cls}">${value}</div><div class="day-tile-label">${label}</div></div>`;
+}
+
+function renderDaySummary(s) {
+  if (s.opened === 0 && s.closed === 0) {
+    return '<div class="day-summary-title">Your trading day</div><p class="hint">No trades logged on this day.</p>';
+  }
+
+  const mood = s.moodMix.map((m) => `${EMOTIONAL_LABELS[m.mood] || m.mood} ×${m.count}`).join(' · ');
+  const plan = s.closed ? `${s.plan.yes} yes · ${s.plan.partially} partly · ${s.plan.no} no` : '';
+  const tradeLabel = (t) => `${escapeHtml(t.coin_name)} ${fmtPct(t.pnl_percent)}`;
+
+  const rows = s.trades
+    .map((t) => {
+      // Describe the trade as of THIS day: its P&L only counts on the day it
+      // closed, so a trade opened here but closed later reads "closed later".
+      const what = [t.opened_today ? 'opened' : '', t.closed_today ? 'closed' : ''].filter(Boolean).join(' & ');
+      const outcome = t.closed_today
+        ? `<span class="${pnlClass(t.pnl_amount)}">${fmtMoney(t.pnl_amount)}</span>`
+        : `<span class="day-trade-state">${t.status === 'open' ? 'still open' : 'closed later'}</span>`;
+      return `
+        <div class="day-trade-row" data-trade-id="${t.id}" role="button" tabindex="0">
+          <span class="day-trade-name">${escapeHtml(t.coin_name)}</span>
+          <span class="day-trade-meta">${what} · ${EMOTIONAL_LABELS[t.emotional_state] || t.emotional_state}</span>
+          ${outcome}
+        </div>`;
+    })
+    .join('');
+
+  return `
+    <div class="day-summary-title">Your trading day</div>
+    <div class="day-summary-tiles">
+      ${dayTile(s.opened, 'opened')}
+      ${dayTile(s.closed, 'closed')}
+      ${dayTile(s.closed ? fmtMoney(s.pnl) : '—', 'P&amp;L', s.closed ? pnlClass(s.pnl) : '')}
+      ${dayTile(s.closed ? `${s.wins}W / ${s.losses}L` : '—', 'win / loss')}
+    </div>
+    ${mood ? `<div class="day-line"><span>Mood at entry</span><span>${mood}</span></div>` : ''}
+    ${plan ? `<div class="day-line"><span>Followed plan</span><span>${plan}</span></div>` : ''}
+    ${s.best ? `<div class="day-line"><span>Best trade</span><span class="pnl-pos">${tradeLabel(s.best)}</span></div>` : ''}
+    ${s.worst ? `<div class="day-line"><span>Worst trade</span><span class="pnl-neg">${tradeLabel(s.worst)}</span></div>` : ''}
+    <div class="day-trades">${rows}</div>
+  `;
+}
+
+async function refreshJournalDaySummary() {
+  const date = journalDateInput.value;
+  if (!date) {
+    daySummaryEl.innerHTML = '';
+    return;
+  }
+  // Only the newest request may paint: flicking through dates quickly can
+  // make responses arrive out of order.
+  const requestId = ++daySummaryRequestId;
+  try {
+    const summary = await api(`/api/daily/${date}?tz=${encodeURIComponent(browserTimeZone)}`);
+    if (requestId !== daySummaryRequestId) return;
+    daySummaryEl.innerHTML = renderDaySummary(summary);
+    daySummaryEl.querySelectorAll('.day-trade-row').forEach((row) => {
+      const open = () => openTradeModal(Number(row.dataset.tradeId));
+      row.addEventListener('click', open);
+      row.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          open();
+        }
+      });
+    });
+  } catch {
+    if (requestId !== daySummaryRequestId) return;
+    daySummaryEl.innerHTML = '<p class="hint">Couldn\'t load this day\'s trades. Is the server running?</p>';
+  }
+}
+
 let journalStarred = false;
 
 function setJournalStar(starred) {
@@ -873,6 +956,7 @@ function setJournalStar(starred) {
 journalStarBtn.addEventListener('click', () => setJournalStar(!journalStarred));
 
 journalDateInput.value = todayStr();
+journalDateInput.addEventListener('change', refreshJournalDaySummary);
 
 function resetJournalForm(date) {
   journalTitleInput.value = '';
@@ -885,6 +969,7 @@ function resetJournalForm(date) {
   journalDeleteBtn.classList.add('hidden');
   journalStatus.textContent = '';
   journalStatus.className = 'status-msg';
+  refreshJournalDaySummary();
 }
 
 document.getElementById('journal-new').addEventListener('click', () => resetJournalForm());
@@ -902,6 +987,7 @@ async function loadJournalEntryIntoForm(date) {
     journalDeleteBtn.classList.remove('hidden');
     journalStatus.textContent = '';
     journalStatus.className = 'status-msg';
+    refreshJournalDaySummary();
     journalForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch {
     resetJournalForm(date);
