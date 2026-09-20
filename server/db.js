@@ -5,7 +5,9 @@ const fs = require('node:fs');
 const dataDir = path.join(__dirname, '..', 'data');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
 
-const db = new DatabaseSync(path.join(dataDir, 'trades.db'));
+// Tests point TRENCHING_DB_PATH at a throwaway file so they can never touch
+// the real data/trades.db.
+const db = new DatabaseSync(process.env.TRENCHING_DB_PATH || path.join(dataDir, 'trades.db'));
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS trades (
