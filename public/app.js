@@ -144,10 +144,6 @@ tabButtons.forEach((btn) => {
   });
 });
 
-document.querySelectorAll('.quick-link-btn').forEach((btn) => {
-  btn.addEventListener('click', () => switchToView(btn.dataset.view));
-});
-
 // ---------- API helpers ----------
 async function api(path, options) {
   const res = await fetch(path, {
@@ -158,6 +154,10 @@ async function api(path, options) {
   if (!res.ok) throw new Error(data?.error || 'Request failed');
   return data;
 }
+
+// Sent with day-based requests so the server decides where midnight is using
+// the browser's timezone, not its own.
+const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 function fmtSol(n, decimals = 3) {
   if (n == null) return '—';
@@ -864,8 +864,7 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-// ---------- Journal: automatic day summary ----------
-const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+// ---------- Day summary (shared by the Journal and the Today screen) ----------
 const daySummaryEl = document.getElementById('journal-day-summary');
 let daySummaryRequestId = 0;
 
@@ -873,9 +872,24 @@ function dayTile(value, label, cls = '') {
   return `<div class="day-tile"><div class="day-tile-value ${cls}">${value}</div><div class="day-tile-label">${label}</div></div>`;
 }
 
-function renderDaySummary(s) {
+// Makes every .day-trade-row inside `container` open that trade's modal,
+// by mouse or keyboard.
+function wireDayTradeRows(container) {
+  container.querySelectorAll('.day-trade-row').forEach((row) => {
+    const open = () => openTradeModal(Number(row.dataset.tradeId));
+    row.addEventListener('click', open);
+    row.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        open();
+      }
+    });
+  });
+}
+
+function renderDaySummary(s, { title = 'Your trading day', emptyText = 'No trades logged on this day.' } = {}) {
   if (s.opened === 0 && s.closed === 0) {
-    return '<div class="day-summary-title">Your trading day</div><p class="hint">No trades logged on this day.</p>';
+    return `<div class="day-summary-title">${title}</div><p class="hint">${emptyText}</p>`;
   }
 
   const mood = s.moodMix.map((m) => `${EMOTIONAL_LABELS[m.mood] || m.mood} ×${m.count}`).join(' · ');
@@ -900,7 +914,7 @@ function renderDaySummary(s) {
     .join('');
 
   return `
-    <div class="day-summary-title">Your trading day</div>
+    <div class="day-summary-title">${title}</div>
     <div class="day-summary-tiles">
       ${dayTile(s.opened, 'opened')}
       ${dayTile(s.closed, 'closed')}
@@ -928,16 +942,7 @@ async function refreshJournalDaySummary() {
     const summary = await api(`/api/daily/${date}?tz=${encodeURIComponent(browserTimeZone)}`);
     if (requestId !== daySummaryRequestId) return;
     daySummaryEl.innerHTML = renderDaySummary(summary);
-    daySummaryEl.querySelectorAll('.day-trade-row').forEach((row) => {
-      const open = () => openTradeModal(Number(row.dataset.tradeId));
-      row.addEventListener('click', open);
-      row.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          open();
-        }
-      });
-    });
+    wireDayTradeRows(daySummaryEl);
   } catch {
     if (requestId !== daySummaryRequestId) return;
     daySummaryEl.innerHTML = '<p class="hint">Couldn\'t load this day\'s trades. Is the server running?</p>';
@@ -1218,17 +1223,119 @@ function renderCorrList(containerId, rows) {
     .join('');
 }
 
+// ---------- Today (home screen) ----------
+const todayFocusEl = document.getElementById('today-focus');
+const todaySummaryEl = document.getElementById('today-summary');
+const todayOpenEl = document.getElementById('today-open');
+const todayJournalBtn = document.getElementById('today-journal-btn');
+const SHORT_DAY_FORMAT = new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+const LONG_DAY_FORMAT = new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+let todayDate = null; // "today" as the server worked it out for the browser's timezone
+
+// Formats a YYYY-MM-DD calendar day for display ('Sat, 19 Sep').
+function niceDay(dayStr, formatter = SHORT_DAY_FORMAT) {
+  const [y, m, d] = dayStr.split('-').map(Number);
+  return formatter.format(new Date(y, m - 1, d));
+}
+
+function openJournalFor(date) {
+  switchToView('journal');
+  loadJournalEntryIntoForm(date);
+}
+
+document.getElementById('today-log-btn').addEventListener('click', () => switchToView('add'));
+todayJournalBtn.addEventListener('click', () => openJournalFor(todayDate));
+
+function renderTodayFocus(focus) {
+  const parts = ['<div class="day-summary-title">Focus for today</div>'];
+
+  if (focus.carryOver.length) {
+    parts.push(
+      '<div class="focus-subtitle">You said you would work on</div>',
+      '<ul class="focus-list">' +
+        focus.carryOver
+          .map((i) => `<li class="focus-item"><span>${escapeHtml(i.text)}</span><span class="focus-item-date">${niceDay(i.date)}</span></li>`)
+          .join('') +
+        '</ul>'
+    );
+  }
+
+  if (focus.callouts.length) {
+    parts.push(`<div class="focus-subtitle">Patterns in your last ${focus.windowDays} active day${focus.windowDays === 1 ? '' : 's'}</div>`);
+    focus.callouts.forEach((c) => {
+      const action =
+        c.kind === 'journal' ? `<button type="button" class="btn-secondary" data-journal-date="${c.date}">Journal it</button>` : '';
+      parts.push(`<div class="focus-callout ${c.tone}"><span>${escapeHtml(c.text)}</span>${action}</div>`);
+    });
+  }
+
+  if (!focus.carryOver.length && !focus.callouts.length) {
+    parts.push(
+      focus.windowDays === 0
+        ? '<p class="hint">Nothing to flag yet. Log a few trades and finish each day with the check-in in the Journal. This card will carry your "work on tomorrow" notes forward and point out patterns.</p>'
+        : `<p class="hint">Nothing stands out in your last ${focus.windowDays} active day${focus.windowDays === 1 ? '' : 's'}. Keep logging and it will flag anything that does.</p>`
+    );
+  }
+  return parts.join('');
+}
+
+function renderTodayOpen(positions) {
+  if (!positions.length) return '';
+  const rows = positions
+    .map(
+      (p) => `
+        <div class="day-trade-row" data-trade-id="${p.id}" role="button" tabindex="0">
+          <span class="day-trade-name">${escapeHtml(p.coin_name)}</span>
+          <span class="day-trade-meta">${TrenchDates.formatDateTime(p.created_at)} · ${p.amount_invested} SOL · ${EMOTIONAL_LABELS[p.emotional_state] || p.emotional_state}</span>
+          <span class="day-trade-action">Close out &rarr;</span>
+        </div>`
+    )
+    .join('');
+  return `<div class="day-summary-title">Open positions (${positions.length})</div><div class="day-trades">${rows}</div>`;
+}
+
+function renderToday(t) {
+  todayDate = t.date;
+  document.getElementById('today-date').textContent = niceDay(t.date, LONG_DAY_FORMAT);
+
+  todayFocusEl.innerHTML = renderTodayFocus(t.focus);
+  todayFocusEl.querySelectorAll('[data-journal-date]').forEach((btn) => {
+    btn.addEventListener('click', () => openJournalFor(btn.dataset.journalDate));
+  });
+
+  todaySummaryEl.innerHTML = renderDaySummary(t.summary, {
+    title: 'Today so far',
+    emptyText: 'No trades yet today. Log one and it shows up here.',
+  });
+  wireDayTradeRows(todaySummaryEl);
+
+  todayOpenEl.innerHTML = renderTodayOpen(t.openPositions);
+  wireDayTradeRows(todayOpenEl);
+
+  todayJournalBtn.textContent = !t.journal.hasEntry
+    ? "Write today's journal"
+    : t.journal.hasCheckIn
+      ? "Edit today's journal"
+      : "Finish today's check-in";
+}
+
 async function loadDashboard() {
   const dashboardErrorEl = document.getElementById('dashboard-error');
   let data;
+  let today;
   try {
-    data = await api('/api/dashboard');
+    [today, data] = await Promise.all([
+      api(`/api/today?tz=${encodeURIComponent(browserTimeZone)}`),
+      api('/api/dashboard'),
+    ]);
     dashboardErrorEl.classList.add('hidden');
   } catch (err) {
-    dashboardErrorEl.textContent = `Couldn't load dashboard: ${err.message}. Is the server running?`;
+    dashboardErrorEl.textContent = `Couldn't load your dashboard: ${err.message}. Is the server running?`;
     dashboardErrorEl.classList.remove('hidden');
     return;
   }
+
+  renderToday(today);
 
   document.getElementById('dashboard-bullets').innerHTML =
     '<ul class="bullet-list">' + data.bullets.map((b) => `<li>${escapeHtml(b)}</li>`).join('') + '</ul>';
@@ -1910,13 +2017,13 @@ resetConfirmBtn.addEventListener('click', async () => {
 document.getElementById('account-widget').addEventListener('click', () => switchToView('settings'));
 
 // ---------- Guided tour ----------
-// A lightweight spotlight tour over real elements on the Dashboard, rather
+// A lightweight spotlight tour over real elements on the Today screen, rather
 // than a separate slideshow -- each step highlights the actual button
 // (boosting its z-index above the dimmed backdrop, no clip-path/SVG mask
 // needed) and points a callout at it.
 const TOUR_STEPS = [
   { selector: '#hamburger-btn', text: 'Tap here to open the menu and jump to any section of the app.' },
-  { selector: '.quick-links', text: "Quick shortcuts to the places you'll use most, right from the Dashboard." },
+  { selector: '.today-actions', text: "Your home base: log a trade or open today's journal, and see what to focus on below." },
   { selector: '#settings-icon-btn', text: 'Your name, photo, default currency, and theme all live in Settings.' },
   { selector: '#account-widget', text: "That's you. Click here any time to jump to Settings." },
   { selector: '#help-btn', text: "Stuck later? Come back here any time to replay this tour or check the FAQ." },

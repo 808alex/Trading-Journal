@@ -1040,30 +1040,6 @@ h3 {
 
 .modal-wide { max-width: 760px; }
 
-.quick-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  margin-bottom: 1.5rem;
-}
-
-.quick-link-btn {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 0.55rem 1rem;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: border-color 150ms ease, transform 150ms ease, background 150ms ease;
-}
-
-.quick-link-btn:hover {
-  border-color: var(--accent);
-  background: var(--panel-alt);
-  transform: translateY(-1px);
-}
-
 .totals-header {
   display: flex;
   align-items: center;
@@ -1223,6 +1199,68 @@ h3 {
   font-size: 0.9rem;
   line-height: 1.5;
 }
+
+/* ---------- Today (home screen) ---------- */
+.today-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0.25rem 0 1.25rem;
+}
+
+.today-card { margin-bottom: 1rem; }
+
+.focus-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  margin: 0.9rem 0 0.45rem;
+}
+
+.day-summary-title + .focus-subtitle { margin-top: 0; }
+
+.focus-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.focus-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.9rem;
+}
+
+.focus-item-date { color: var(--text-dim); font-size: 0.78rem; white-space: nowrap; }
+
+.focus-callout {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.88rem;
+  margin-bottom: 0.45rem;
+}
+
+.focus-callout.warn { border-left-color: var(--yellow); }
+.focus-callout.good { border-left-color: var(--green); }
+.focus-callout.info { border-left-color: var(--accent-2); }
+
+.focus-callout .btn-secondary {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.day-trade-action { color: var(--accent); font-size: 0.8rem; white-space: nowrap; }
 
 /* ---------- Journal: end-of-day check-in ---------- */
 .checkin {
